@@ -18,6 +18,7 @@ public abstract class Formatter {
      */
     public abstract String getName();
 
+
     /**
      * Returns a unique key for the formatter that can be used for its identification
      * @return the key of the formatter, always not null

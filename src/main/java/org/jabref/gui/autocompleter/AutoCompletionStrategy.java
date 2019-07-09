@@ -1,5 +1,6 @@
 package org.jabref.gui.autocompleter;
 
 public interface AutoCompletionStrategy {
-    AutoCompletionInput analyze(String input);
+
+    public AutoCompletionInput analyze(String input);
 }

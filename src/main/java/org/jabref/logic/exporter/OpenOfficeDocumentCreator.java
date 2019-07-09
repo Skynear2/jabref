@@ -34,6 +34,9 @@ import org.jabref.model.entry.BibEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * @author alver
+ */
 public class OpenOfficeDocumentCreator extends Exporter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OpenOfficeDocumentCreator.class);

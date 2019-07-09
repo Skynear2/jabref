@@ -1,39 +1,48 @@
 package org.jabref;
 
+import java.awt.Font;
+import java.awt.Frame;
 import java.io.File;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 
-import javafx.scene.Scene;
-import javafx.stage.Stage;
+import javax.swing.JOptionPane;
+import javax.swing.UIDefaults;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.plaf.FontUIResource;
 
 import org.jabref.gui.BasePanel;
 import org.jabref.gui.GUIGlobals;
 import org.jabref.gui.JabRefFrame;
 import org.jabref.gui.dialogs.BackupUIManager;
-import org.jabref.gui.help.VersionWorker;
-import org.jabref.gui.icon.IconTheme;
 import org.jabref.gui.importer.ParserResultWarningDialog;
 import org.jabref.gui.importer.actions.OpenDatabaseAction;
 import org.jabref.gui.shared.SharedDatabaseUIManager;
+import org.jabref.gui.worker.VersionWorker;
 import org.jabref.logic.autosaveandbackup.BackupManager;
 import org.jabref.logic.importer.OpenDatabase;
 import org.jabref.logic.importer.ParserResult;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.logic.shared.exception.InvalidDBMSConnectionPropertiesException;
 import org.jabref.logic.shared.exception.NotASharedDatabaseException;
+import org.jabref.logic.util.OS;
+import org.jabref.logic.util.Version;
 import org.jabref.model.database.shared.DatabaseNotSupportedException;
 import org.jabref.preferences.JabRefPreferences;
 
-import impl.org.controlsfx.skin.DecorationPane;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JabRefGUI {
 
+    private static final String NIMBUS_LOOK_AND_FEEL = "javax.swing.plaf.nimbus.NimbusLookAndFeel";
     private static final Logger LOGGER = LoggerFactory.getLogger(JabRefGUI.class);
+    private static final String GTK_LF_CLASSNAME = "com.sun.java.swing.plaf.gtk.GTKLookAndFeel";
 
     private static JabRefFrame mainFrame;
 
@@ -44,25 +53,45 @@ public class JabRefGUI {
 
     private final String focusedFile;
 
-    public JabRefGUI(Stage mainStage, List<ParserResult> argsDatabases, boolean isBlank) {
+    public JabRefGUI(List<ParserResult> argsDatabases, boolean isBlank) {
         this.bibDatabases = argsDatabases;
         this.isBlank = isBlank;
-        mainFrame = new JabRefFrame(mainStage);
 
         // passed file (we take the first one) should be focused
         focusedFile = argsDatabases.stream()
-                                    .findFirst()
-                                    .flatMap(ParserResult::getFile)
-                                    .map(File::getAbsolutePath)
-                                    .orElse(Globals.prefs.get(JabRefPreferences.LAST_FOCUSED));
+                .findFirst()
+                .flatMap(ParserResult::getFile)
+                .map(File::getAbsolutePath)
+                .orElse(Globals.prefs.get(JabRefPreferences.LAST_FOCUSED));
 
-        openWindow(mainStage);
-        new VersionWorker(Globals.BUILD_INFO.getVersion(), Globals.prefs.getVersionPreferences().getIgnoredVersion(), mainFrame.getDialogService(), Globals.TASK_EXECUTOR)
-                .checkForNewVersionAsync(false);
+        openWindow();
+        JabRefGUI.checkForNewVersion(false);
     }
 
-    private void openWindow(Stage mainStage) {
-        applyFontRenderingTweak();
+    public static void checkForNewVersion(boolean manualExecution) {
+        Version toBeIgnored = Globals.prefs.getVersionPreferences().getIgnoredVersion();
+        Version currentVersion = Globals.BUILD_INFO.getVersion();
+        new VersionWorker(JabRefGUI.getMainFrame(), manualExecution, currentVersion, toBeIgnored).execute();
+    }
+
+    private void openWindow() {
+
+        // This property is set to make the Mac OSX Java VM move the menu bar to the top of the screen
+        if (OS.OS_X) {
+            System.setProperty("apple.laf.useScreenMenuBar", "true");
+        }
+
+        // Set antialiasing on everywhere. This only works in JRE >= 1.5.
+        // Or... it doesn't work, period.
+        // TODO test and maybe remove this! I found this commented out with no additional info ( payload@lavabit.com )
+        // Enabled since JabRef 2.11 beta 4
+        System.setProperty("swing.aatext", "true");
+        // Default is "on".
+        // "lcd" instead of "on" because of http://wiki.netbeans.org/FaqFontRendering and http://docs.oracle.com/javase/6/docs/technotes/guides/2d/flags.html#aaFonts
+        System.setProperty("awt.useSystemAAFontSettings", "lcd");
+
+        // look and feel. This MUST be the first thing to do before loading any Swing-specific code!
+        setLookAndFeel();
 
         // If the option is enabled, open the last edited libraries, if any.
         if (!isBlank && Globals.prefs.getBoolean(JabRefPreferences.OPEN_LAST_EDITED)) {
@@ -72,7 +101,7 @@ public class JabRefGUI {
         GUIGlobals.init();
 
         LOGGER.debug("Initializing frame");
-        mainFrame.init();
+        JabRefGUI.mainFrame = new JabRefFrame();
 
         // Add all bibDatabases databases to the frame:
         boolean first = false;
@@ -96,10 +125,9 @@ public class JabRefGUI {
                         pr.getDatabase().clearSharedDatabaseID();
 
                         LOGGER.error("Connection error", e);
-                        mainFrame.getDialogService().showErrorDialogAndWait(
-                                Localization.lang("Connection error"),
-                                Localization.lang("A local copy will be opened."),
-                                e);
+                        JOptionPane.showMessageDialog(mainFrame,
+                                e.getMessage() + "\n\n" + Localization.lang("A local copy will be opened."),
+                                Localization.lang("Connection error"), JOptionPane.WARNING_MESSAGE);
                     }
                     toOpenTab.add(pr);
                 } else if (pr.toOpenTab()) {
@@ -107,7 +135,7 @@ public class JabRefGUI {
                     // add them to the list
                     toOpenTab.add(pr);
                 } else {
-                    mainFrame.addParserResult(pr, first);
+                    JabRefGUI.getMainFrame().addParserResult(pr, first);
                     first = false;
                 }
             }
@@ -115,7 +143,7 @@ public class JabRefGUI {
 
         // finally add things to the currently opened tab
         for (ParserResult pr : toOpenTab) {
-            mainFrame.addParserResult(pr, first);
+            JabRefGUI.getMainFrame().addParserResult(pr, first);
             first = false;
         }
 
@@ -123,46 +151,24 @@ public class JabRefGUI {
         // state. This needs to be set after the window has been made visible, so we
         // do it here:
         if (Globals.prefs.getBoolean(JabRefPreferences.WINDOW_MAXIMISED)) {
-            mainStage.setMaximized(true);
-        } else {
-            mainStage.setX(Globals.prefs.getDouble(JabRefPreferences.POS_X));
-            mainStage.setY(Globals.prefs.getDouble(JabRefPreferences.POS_Y));
-            mainStage.setWidth(Globals.prefs.getDouble(JabRefPreferences.SIZE_X));
-            mainStage.setHeight(Globals.prefs.getDouble(JabRefPreferences.SIZE_Y));
+            JabRefGUI.getMainFrame().setExtendedState(Frame.MAXIMIZED_BOTH);
         }
 
-        // We create a decoration pane ourselves for performance reasons
-        // (otherwise it has to be injected later, leading to a complete redraw/relayout of the complete scene)
-        DecorationPane root = new DecorationPane();
-        root.getChildren().add(JabRefGUI.mainFrame);
-
-        Scene scene = new Scene(root, 800, 800);
-        Globals.getThemeLoader().installCss(scene, Globals.prefs);
-        mainStage.setTitle(JabRefFrame.FRAME_TITLE);
-        mainStage.getIcons().addAll(IconTheme.getLogoSetFX());
-        mainStage.setScene(scene);
-        mainStage.show();
-
-        mainStage.setOnCloseRequest(event -> {
-            saveWindowState(mainStage);
-            boolean reallyQuit = mainFrame.quit();
-            if (!reallyQuit) {
-                event.consume();
-            }
-        });
+        JabRefGUI.getMainFrame().setVisible(true);
 
         for (ParserResult pr : failed) {
-            String message = Localization.lang("Error opening file '%0'.", pr.getFile().get().getName()) + "\n"
-                    + pr.getErrorMessage();
+            String message = "<html>" + Localization.lang("Error opening file '%0'.", pr.getFile().get().getName())
+                    + "<p>"
+                    + pr.getErrorMessage() + "</html>";
 
-            mainFrame.getDialogService().showErrorDialogAndWait(Localization.lang("Error opening file"), message);
-
+            JOptionPane.showMessageDialog(JabRefGUI.getMainFrame(), message, Localization.lang("Error opening file"),
+                    JOptionPane.ERROR_MESSAGE);
         }
 
         // Display warnings, if any
         int tabNumber = 0;
         for (ParserResult pr : bibDatabases) {
-            ParserResultWarningDialog.showParserResultWarningDialog(pr, mainFrame, tabNumber++);
+            ParserResultWarningDialog.showParserResultWarningDialog(pr, JabRefGUI.getMainFrame(), tabNumber++);
         }
 
         // After adding the databases, go through each and see if
@@ -174,21 +180,17 @@ public class JabRefGUI {
         // This is because importToOpen might have been used, which adds to
         // loadedDatabases, but not to getBasePanelCount()
 
-        for (int i = 0; (i < bibDatabases.size()) && (i < mainFrame.getBasePanelCount()); i++) {
+        for (int i = 0; (i < bibDatabases.size()) && (i < JabRefGUI.getMainFrame().getBasePanelCount()); i++) {
             ParserResult pr = bibDatabases.get(i);
-            BasePanel panel = mainFrame.getBasePanelAt(i);
+            BasePanel panel = JabRefGUI.getMainFrame().getBasePanelAt(i);
             OpenDatabaseAction.performPostOpenActions(panel, pr);
         }
 
         LOGGER.debug("Finished adding panels");
-    }
 
-    private void saveWindowState(Stage mainStage) {
-        Globals.prefs.putBoolean(JabRefPreferences.WINDOW_MAXIMISED, mainStage.isMaximized());
-        Globals.prefs.putDouble(JabRefPreferences.POS_X, mainStage.getX());
-        Globals.prefs.putDouble(JabRefPreferences.POS_Y, mainStage.getY());
-        Globals.prefs.putDouble(JabRefPreferences.SIZE_X, mainStage.getWidth());
-        Globals.prefs.putDouble(JabRefPreferences.SIZE_Y, mainStage.getHeight());
+        if (!bibDatabases.isEmpty()) {
+            JabRefGUI.getMainFrame().getCurrentBasePanel().getMainTable().requestFocus();
+        }
     }
 
     private void openLastEditedDatabases() {
@@ -206,7 +208,7 @@ public class JabRefGUI {
             }
 
             if (BackupManager.checkForBackupFile(dbFile.toPath())) {
-                BackupUIManager.showRestoreBackupDialog(mainFrame.getDialogService(), dbFile.toPath());
+                BackupUIManager.showRestoreBackupDialog(mainFrame, dbFile.toPath());
             }
 
             ParserResult parsedDatabase = OpenDatabase.loadDatabase(fileName,
@@ -229,16 +231,76 @@ public class JabRefGUI {
         return false;
     }
 
-    private void applyFontRenderingTweak() {
-        // On Linux, Java FX fonts look blurry per default. This can be improved by using a non-default rendering setting.
-        // See https://github.com/woky/javafx-hates-linux
-        if (Globals.prefs.getBoolean(JabRefPreferences.FX_FONT_RENDERING_TWEAK)) {
-            System.setProperty("prism.text", "t2k");
-            System.setProperty("prism.lcdtext", "true");
+    private void setLookAndFeel() {
+        try {
+            String lookFeel;
+            String systemLookFeel = UIManager.getSystemLookAndFeelClassName();
+
+            if (Globals.prefs.getBoolean(JabRefPreferences.USE_DEFAULT_LOOK_AND_FEEL)) {
+                // FIXME: Problems with GTK L&F on Linux and Mac. Needs reevaluation for Java9
+                if (GTK_LF_CLASSNAME.equals(systemLookFeel)) {
+                    lookFeel = NIMBUS_LOOK_AND_FEEL;
+                    LOGGER.warn("There seems to be problems with GTK Look&Feel. Using Nimbus L&F instead. Change to another L&F with caution.");
+                } else {
+                    lookFeel = systemLookFeel;
+                }
+            } else {
+                lookFeel = Globals.prefs.get(JabRefPreferences.WIN_LOOK_AND_FEEL);
+            }
+
+            //Prevent metal l&f
+            if (UIManager.getCrossPlatformLookAndFeelClassName().equals(lookFeel)) {
+                UIManager.setLookAndFeel(NIMBUS_LOOK_AND_FEEL);
+            } else {
+                try {
+                    UIManager.setLookAndFeel(lookFeel);
+                } catch (ClassNotFoundException | InstantiationException | IllegalAccessException |
+                        UnsupportedLookAndFeelException e) {
+                    // specified look and feel does not exist on the classpath, so use system l&f
+                    UIManager.setLookAndFeel(systemLookFeel);
+                    // also set system l&f as default
+                    Globals.prefs.put(JabRefPreferences.WIN_LOOK_AND_FEEL, systemLookFeel);
+                    // notify the user
+                    JOptionPane.showMessageDialog(JabRefGUI.getMainFrame(),
+                            Localization
+                                    .lang("Unable to find the requested look and feel and thus the default one is used."),
+                            Localization.lang("Warning"), JOptionPane.WARNING_MESSAGE);
+                    LOGGER.warn("Unable to find requested look and feel", e);
+                }
+            }
+
+            // On Linux, Java FX fonts look blurry per default. This can be improved by using a non-default rendering
+            // setting. See https://github.com/woky/javafx-hates-linux
+            if (Globals.prefs.getBoolean(JabRefPreferences.FX_FONT_RENDERING_TWEAK)) {
+                System.setProperty("prism.text", "t2k");
+                System.setProperty("prism.lcdtext", "true");
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Look and feel could not be set", e);
+        }
+
+        // In JabRef v2.8, we did it only on NON-Mac. Now, we try on all platforms
+        boolean overrideDefaultFonts = Globals.prefs.getBoolean(JabRefPreferences.OVERRIDE_DEFAULT_FONTS);
+        if (overrideDefaultFonts) {
+            int fontSize = Globals.prefs.getInt(JabRefPreferences.MENU_FONT_SIZE);
+            UIDefaults defaults = UIManager.getDefaults();
+            Enumeration<Object> keys = defaults.keys();
+            for (Object key : Collections.list(keys)) {
+                if ((key instanceof String) && ((String) key).endsWith(".font")) {
+                    Font font = (Font) UIManager.get(key);
+                    font = new FontUIResource(font.getName(), font.getStyle(), fontSize);
+                    defaults.put(key, font);
+                }
+            }
         }
     }
 
     public static JabRefFrame getMainFrame() {
         return mainFrame;
+    }
+
+    // Only used for testing, other than that do NOT set the mainFrame...
+    public static void setMainFrame(JabRefFrame mainFrame) {
+        JabRefGUI.mainFrame = mainFrame;
     }
 }

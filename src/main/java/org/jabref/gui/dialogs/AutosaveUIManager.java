@@ -1,6 +1,5 @@
 package org.jabref.gui.dialogs;
 
-import org.jabref.Globals;
 import org.jabref.gui.BasePanel;
 import org.jabref.gui.exporter.SaveDatabaseAction;
 import org.jabref.model.database.event.AutosaveEvent;
@@ -26,7 +25,7 @@ public class AutosaveUIManager {
     @Subscribe
     public void listen(@SuppressWarnings("unused") AutosaveEvent event) {
         try {
-            new SaveDatabaseAction(panel, Globals.prefs).save();
+            new SaveDatabaseAction(panel).runCommand();
         } catch (Throwable e) {
             LOGGER.error("Problem occured while saving.", e);
         }

@@ -1,8 +1,5 @@
 package org.jabref.logic.search;
 
-import java.util.Optional;
-import java.util.regex.Pattern;
-
 import org.jabref.model.entry.BibEntry;
 import org.jabref.model.entry.BibtexEntryTypes;
 import org.jabref.model.entry.FieldName;
@@ -12,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 
 public class SearchQueryTest {
 
@@ -61,7 +59,7 @@ public class SearchQueryTest {
 
     @Test
     public void testSearchingForOpenBraketInBooktitle() {
-        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS);
+        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS.getName());
         e.setField(FieldName.BOOKTITLE, "Super Conference (SC)");
 
         SearchQuery searchQuery = new SearchQuery("booktitle=\"(\"", false, false);
@@ -70,7 +68,7 @@ public class SearchQueryTest {
 
     @Test
     public void testSearchMatchesSingleKeywordNotPart() {
-        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS);
+        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS.getName());
         e.setField("keywords", "banana, pineapple, orange");
 
         SearchQuery searchQuery = new SearchQuery("anykeyword==apple", false, false);
@@ -79,7 +77,7 @@ public class SearchQueryTest {
 
     @Test
     public void testSearchMatchesSingleKeyword() {
-        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS);
+        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS.getName());
         e.setField("keywords", "banana, pineapple, orange");
 
         SearchQuery searchQuery = new SearchQuery("anykeyword==pineapple", false, false);
@@ -88,7 +86,7 @@ public class SearchQueryTest {
 
     @Test
     public void testSearchAllFields() {
-        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS);
+        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS.getName());
         e.setField("title", "Fruity features");
         e.setField("keywords", "banana, pineapple, orange");
 
@@ -98,7 +96,7 @@ public class SearchQueryTest {
 
     @Test
     public void testSearchAllFieldsNotForSpecificField() {
-        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS);
+        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS.getName());
         e.setField("title", "Fruity features");
         e.setField("keywords", "banana, pineapple, orange");
 
@@ -108,7 +106,7 @@ public class SearchQueryTest {
 
     @Test
     public void testSearchAllFieldsAndSpecificField() {
-        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS);
+        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS.getName());
         e.setField("title", "Fruity features");
         e.setField("keywords", "banana, pineapple, orange");
 
@@ -185,6 +183,7 @@ public class SearchQueryTest {
         entry.setField("abstract", "text");
 
         assertTrue(new SearchQuery("text AND author=asdf", true, true).isMatch(entry));
+
     }
 
     @Test
@@ -192,15 +191,8 @@ public class SearchQueryTest {
         String query = "progress";
 
         SearchQuery result = new SearchQuery(query, false, false);
+
         assertFalse(result.isGrammarBasedSearch());
     }
 
-    @Test
-    public void testGetPattern() {
-        String query = "progress";
-        SearchQuery result = new SearchQuery(query, false, false);
-        Pattern pattern = Pattern.compile("(\\Qprogress\\E)");
-        //We can't directly compare the pattern objects
-        assertEquals(Optional.of(pattern.toString()), result.getPatternForWords().map(Pattern::toString));
-    }
 }

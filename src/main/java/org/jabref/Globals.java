@@ -1,20 +1,16 @@
 package org.jabref;
 
 import java.awt.GraphicsEnvironment;
-import java.io.IOException;
+import java.awt.Toolkit;
 import java.util.Optional;
 import java.util.UUID;
 
-import javafx.stage.Screen;
-
-import org.jabref.gui.ClipBoardManager;
+import org.jabref.gui.GlobalFocusListener;
 import org.jabref.gui.StateManager;
 import org.jabref.gui.keyboard.KeyBindingRepository;
-import org.jabref.gui.undo.CountingUndoManager;
 import org.jabref.gui.util.DefaultFileUpdateMonitor;
 import org.jabref.gui.util.DefaultTaskExecutor;
 import org.jabref.gui.util.TaskExecutor;
-import org.jabref.gui.util.ThemeLoader;
 import org.jabref.logic.exporter.ExporterFactory;
 import org.jabref.logic.importer.ImportFormatReader;
 import org.jabref.logic.journals.JournalAbbreviationLoader;
@@ -25,10 +21,8 @@ import org.jabref.model.util.FileUpdateMonitor;
 import org.jabref.preferences.JabRefPreferences;
 
 import com.google.common.base.StandardSystemProperty;
-import com.mashape.unirest.http.Unirest;
 import com.microsoft.applicationinsights.TelemetryClient;
 import com.microsoft.applicationinsights.TelemetryConfiguration;
-import com.microsoft.applicationinsights.internal.shutdown.SDKShutdownActivity;
 import com.microsoft.applicationinsights.telemetry.SessionState;
 
 public class Globals {
@@ -55,16 +49,13 @@ public class Globals {
     /**
      * Manager for the state of the GUI.
      */
-
-    public static ClipBoardManager clipboardManager = new ClipBoardManager();
-
     public static StateManager stateManager = new StateManager();
     public static ExporterFactory exportFactory;
-    public static CountingUndoManager undoManager = new CountingUndoManager();
     // Key binding preferences
     private static KeyBindingRepository keyBindingRepository;
+    // Background tasks
+    private static GlobalFocusListener focusListener;
     private static DefaultFileUpdateMonitor fileUpdateMonitor;
-    private static ThemeLoader themeLoader;
     private static TelemetryClient telemetryClient;
 
     private Globals() {
@@ -78,12 +69,13 @@ public class Globals {
         return keyBindingRepository;
     }
 
+
     // Background tasks
-    public static void startBackgroundTasks() throws JabRefException {
+    public static void startBackgroundTasks() {
+        Globals.focusListener = new GlobalFocusListener();
+
         Globals.fileUpdateMonitor = new DefaultFileUpdateMonitor();
         JabRefExecutorService.INSTANCE.executeInterruptableTask(Globals.fileUpdateMonitor, "FileUpdateMonitor");
-
-        themeLoader = new ThemeLoader(fileUpdateMonitor, prefs);
 
         if (Globals.prefs.shouldCollectTelemetry() && !GraphicsEnvironment.isHeadless()) {
             startTelemetryClient();
@@ -91,13 +83,10 @@ public class Globals {
     }
 
     private static void stopTelemetryClient() {
-        getTelemetryClient().ifPresent(client -> {
-            client.trackSessionState(SessionState.End);
-            client.flush();
-
-            //FIXME: Workaround for bug https://github.com/Microsoft/ApplicationInsights-Java/issues/662
-            SDKShutdownActivity.INSTANCE.stopAll();
-        });
+        if (Globals.prefs.shouldCollectTelemetry()) {
+            getTelemetryClient().ifPresent(client -> client.trackSessionState(SessionState.End));
+            getTelemetryClient().ifPresent(client -> client.flush());
+        }
     }
 
     private static void startTelemetryClient() {
@@ -111,9 +100,14 @@ public class Globals {
         telemetryClient.getContext().getSession().setId(UUID.randomUUID().toString());
         telemetryClient.getContext().getDevice().setOperatingSystem(StandardSystemProperty.OS_NAME.value());
         telemetryClient.getContext().getDevice().setOperatingSystemVersion(StandardSystemProperty.OS_VERSION.value());
-        telemetryClient.getContext().getDevice().setScreenResolution(Screen.getPrimary().getVisualBounds().toString());
+        telemetryClient.getContext().getDevice().setScreenResolution(
+                Toolkit.getDefaultToolkit().getScreenSize().toString());
 
         telemetryClient.trackSessionState(SessionState.Start);
+    }
+
+    public static GlobalFocusListener getFocusListener() {
+        return focusListener;
     }
 
     public static FileUpdateMonitor getFileUpdateMonitor() {
@@ -127,16 +121,9 @@ public class Globals {
 
     public static void stopBackgroundTasks() {
         stopTelemetryClient();
-        try {
-            Unirest.shutdown();
-        } catch (IOException ignore) { }
     }
 
     public static Optional<TelemetryClient> getTelemetryClient() {
         return Optional.ofNullable(telemetryClient);
-    }
-
-    public static ThemeLoader getThemeLoader() {
-        return themeLoader;
     }
 }

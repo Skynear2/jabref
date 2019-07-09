@@ -24,23 +24,18 @@ import org.jabref.model.groups.RegexKeywordGroup;
 import org.jabref.model.groups.SearchGroup;
 import org.jabref.model.groups.TexGroup;
 import org.jabref.model.groups.WordKeywordGroup;
-import org.jabref.model.metadata.MetaData;
 import org.jabref.model.strings.StringUtil;
 import org.jabref.model.util.FileUpdateMonitor;
-
-import org.slf4j.LoggerFactory;
 
 /**
  * Converts string representation of groups to a parsed {@link GroupTreeNode}.
  */
 public class GroupsParser {
 
-    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(GroupsParser.class);
-
     private GroupsParser() {
     }
 
-    public static GroupTreeNode importGroups(List<String> orderedData, Character keywordSeparator, FileUpdateMonitor fileMonitor, MetaData metaData)
+    public static GroupTreeNode importGroups(List<String> orderedData, Character keywordSeparator, FileUpdateMonitor fileMonitor)
             throws ParseException {
         try {
             GroupTreeNode cursor = null;
@@ -57,7 +52,7 @@ public class GroupsParser {
                     throw new ParseException("Expected \"" + string + "\" to contain whitespace");
                 }
                 int level = Integer.parseInt(string.substring(0, spaceIndex));
-                AbstractGroup group = GroupsParser.fromString(string.substring(spaceIndex + 1), keywordSeparator, fileMonitor, metaData);
+                AbstractGroup group = GroupsParser.fromString(string.substring(spaceIndex + 1), keywordSeparator, fileMonitor);
                 GroupTreeNode newNode = GroupTreeNode.fromGroup(group);
                 if (cursor == null) {
                     // create new root
@@ -89,7 +84,7 @@ public class GroupsParser {
      * @throws ParseException If an error occurred and a group could not be created,
      *                        e.g. due to a malformed regular expression.
      */
-    public static AbstractGroup fromString(String s, Character keywordSeparator, FileUpdateMonitor fileMonitor, MetaData metaData)
+    public static AbstractGroup fromString(String s, Character keywordSeparator, FileUpdateMonitor fileMonitor)
             throws ParseException {
         if (s.startsWith(MetadataSerializationConfiguration.KEYWORD_GROUP_ID)) {
             return keywordGroupFromString(s, keywordSeparator);
@@ -113,13 +108,13 @@ public class GroupsParser {
             return automaticKeywordGroupFromString(s);
         }
         if (s.startsWith(MetadataSerializationConfiguration.TEX_GROUP_ID)) {
-            return texGroupFromString(s, fileMonitor, metaData);
+            return texGroupFromString(s, fileMonitor);
         }
 
         throw new ParseException("Unknown group: " + s);
     }
 
-    private static AbstractGroup texGroupFromString(String string, FileUpdateMonitor fileMonitor, MetaData metaData) throws ParseException {
+    private static AbstractGroup texGroupFromString(String string, FileUpdateMonitor fileMonitor) throws ParseException {
         QuotedStringTokenizer tok = new QuotedStringTokenizer(string.substring(MetadataSerializationConfiguration.TEX_GROUP_ID
                 .length()), MetadataSerializationConfiguration.GROUP_UNIT_SEPARATOR, MetadataSerializationConfiguration.GROUP_QUOTE_CHAR);
 
@@ -127,18 +122,9 @@ public class GroupsParser {
         GroupHierarchyType context = GroupHierarchyType.getByNumberOrDefault(Integer.parseInt(tok.nextToken()));
         try {
             Path path = Paths.get(tok.nextToken());
-            try {
-                TexGroup newGroup = TexGroup.create(name, context, path, new DefaultAuxParser(new BibDatabase()), fileMonitor, metaData);
-                addGroupDetails(tok, newGroup);
-                return newGroup;
-            } catch (IOException ex) {
-                // Problem accessing file -> create without file monitoring
-                LOGGER.warn("Could not access file " + path + ". The group " + name + " will not reflect changes to the aux file.", ex);
-
-                TexGroup newGroup = TexGroup.createWithoutFileMonitoring(name, context, path, new DefaultAuxParser(new BibDatabase()), fileMonitor, metaData);
-                addGroupDetails(tok, newGroup);
-                return newGroup;
-            }
+            TexGroup newGroup = new TexGroup(name, context, path, new DefaultAuxParser(new BibDatabase()), fileMonitor);
+            addGroupDetails(tok, newGroup);
+            return newGroup;
         } catch (InvalidPathException | IOException ex) {
             throw new ParseException(ex);
         }
@@ -169,8 +155,8 @@ public class GroupsParser {
         String name = StringUtil.unquote(tok.nextToken(), MetadataSerializationConfiguration.GROUP_QUOTE_CHAR);
         GroupHierarchyType context = GroupHierarchyType.getByNumberOrDefault(Integer.parseInt(tok.nextToken()));
         String field = StringUtil.unquote(tok.nextToken(), MetadataSerializationConfiguration.GROUP_QUOTE_CHAR);
-        Character delimiter = StringUtil.unquote(tok.nextToken(), MetadataSerializationConfiguration.GROUP_QUOTE_CHAR).charAt(0);
-        Character hierarchicalDelimiter = StringUtil.unquote(tok.nextToken(), MetadataSerializationConfiguration.GROUP_QUOTE_CHAR).charAt(0);
+        Character delimiter = tok.nextToken().charAt(0);
+        Character hierarchicalDelimiter = tok.nextToken().charAt(0);
         AutomaticKeywordGroup newGroup = new AutomaticKeywordGroup(name, context, field, delimiter, hierarchicalDelimiter);
         addGroupDetails(tok, newGroup);
         return newGroup;
@@ -212,7 +198,7 @@ public class GroupsParser {
         QuotedStringTokenizer tok = new QuotedStringTokenizer(input.substring(MetadataSerializationConfiguration.EXPLICIT_GROUP_ID.length()),
                 MetadataSerializationConfiguration.GROUP_UNIT_SEPARATOR, MetadataSerializationConfiguration.GROUP_QUOTE_CHAR);
 
-        String name = StringUtil.unquote(tok.nextToken(), MetadataSerializationConfiguration.GROUP_QUOTE_CHAR);
+        String name = tok.nextToken();
         try {
             int context = Integer.parseInt(tok.nextToken());
             ExplicitGroup newGroup = new ExplicitGroup(name, GroupHierarchyType.getByNumberOrDefault(context), keywordSeparator);
@@ -230,7 +216,7 @@ public class GroupsParser {
         QuotedStringTokenizer tok = new QuotedStringTokenizer(input.substring(MetadataSerializationConfiguration.LEGACY_EXPLICIT_GROUP_ID.length()),
                 MetadataSerializationConfiguration.GROUP_UNIT_SEPARATOR, MetadataSerializationConfiguration.GROUP_QUOTE_CHAR);
 
-        String name = StringUtil.unquote(tok.nextToken(), MetadataSerializationConfiguration.GROUP_QUOTE_CHAR);
+        String name = tok.nextToken();
         try {
             int context = Integer.parseInt(tok.nextToken());
             ExplicitGroup newGroup = new ExplicitGroup(name, GroupHierarchyType.getByNumberOrDefault(context), keywordSeparator);
@@ -274,15 +260,15 @@ public class GroupsParser {
         QuotedStringTokenizer tok = new QuotedStringTokenizer(s.substring(MetadataSerializationConfiguration.SEARCH_GROUP_ID.length()),
                 MetadataSerializationConfiguration.GROUP_UNIT_SEPARATOR, MetadataSerializationConfiguration.GROUP_QUOTE_CHAR);
 
-        String name = StringUtil.unquote(tok.nextToken(), MetadataSerializationConfiguration.GROUP_QUOTE_CHAR);
+        String name = tok.nextToken();
         int context = Integer.parseInt(tok.nextToken());
-        String expression = StringUtil.unquote(tok.nextToken(), MetadataSerializationConfiguration.GROUP_QUOTE_CHAR);
+        String expression = tok.nextToken();
         boolean caseSensitive = Integer.parseInt(tok.nextToken()) == 1;
         boolean regExp = Integer.parseInt(tok.nextToken()) == 1;
         // version 0 contained 4 additional booleans to specify search
         // fields; these are ignored now, all fields are always searched
-        return new SearchGroup(name,
-                GroupHierarchyType.getByNumberOrDefault(context), expression, caseSensitive, regExp
+        return new SearchGroup(StringUtil.unquote(name, MetadataSerializationConfiguration.GROUP_QUOTE_CHAR),
+                GroupHierarchyType.getByNumberOrDefault(context), StringUtil.unquote(expression, MetadataSerializationConfiguration.GROUP_QUOTE_CHAR), caseSensitive, regExp
         );
     }
 

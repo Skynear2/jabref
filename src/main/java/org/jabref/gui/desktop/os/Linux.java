@@ -51,18 +51,18 @@ public class Linux implements NativeDesktop {
 
     @Override
     public void openFolderAndSelectFile(Path filePath) throws IOException {
-        String desktopSession = System.getenv("DESKTOP_SESSION");
+        String desktopSession = System.getenv("DESKTOP_SESSION").toLowerCase(Locale.ROOT);
 
-        String cmd = "xdg-open " + filePath.toAbsolutePath().getParent().toString(); //default command
+        String cmd;
 
-        if (desktopSession != null) {
-            desktopSession = desktopSession.toLowerCase(Locale.ROOT);
-            if (desktopSession.contains("gnome")) {
-                cmd = "nautilus" + filePath.toString().replace(" ", "\\ ");
-            } else if (desktopSession.contains("kde")) {
-                cmd = "dolphin --select " + filePath.toString().replace(" ", "\\ ");
-            }
+        if (desktopSession.contains("gnome")) {
+            cmd = "nautilus" + filePath.toString().replace(" ", "\\ ");
+        } else if (desktopSession.contains("kde")) {
+            cmd = "dolphin --select " + filePath.toString().replace(" ", "\\ ");
+        } else {
+            cmd = "xdg-open " + filePath.toAbsolutePath().getParent().toString();
         }
+
         Runtime.getRuntime().exec(cmd);
     }
 
@@ -73,6 +73,7 @@ public class Linux implements NativeDesktop {
         BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
 
         String emulatorName = reader.readLine();
+
         if (emulatorName != null) {
             emulatorName = emulatorName.substring(emulatorName.lastIndexOf(File.separator) + 1);
 

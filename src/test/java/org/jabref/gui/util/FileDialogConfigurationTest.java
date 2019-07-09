@@ -1,5 +1,6 @@
 package org.jabref.gui.util;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -11,16 +12,19 @@ import org.jabref.logic.l10n.Localization;
 import org.jabref.logic.util.FileType;
 import org.jabref.logic.util.StandardFileType;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 
-class FileDialogConfigurationTest {
+public class FileDialogConfigurationTest {
+
+    @Rule public TemporaryFolder folder = new TemporaryFolder();
 
     @Test
-    void testWithValidDirectoryString(@TempDir Path folder) {
-        String tempFolder = folder.toAbsolutePath().toString();
+    public void testWithValidDirectoryString() throws IOException {
+        String tempFolder = folder.newFolder().toString();
 
         FileDialogConfiguration fileDialogConfiguration = new FileDialogConfiguration.Builder()
                 .withInitialDirectory(tempFolder).build();
@@ -29,7 +33,9 @@ class FileDialogConfigurationTest {
     }
 
     @Test
-    void testWithValidDirectoryPath(@TempDir Path tempFolder) {
+    public void testWithValidDirectoryPath() throws IOException {
+        Path tempFolder = folder.newFolder().toPath();
+
         FileDialogConfiguration fileDialogConfiguration = new FileDialogConfiguration.Builder()
                 .withInitialDirectory(tempFolder).build();
 
@@ -37,7 +43,7 @@ class FileDialogConfigurationTest {
     }
 
     @Test
-    void testWithNullStringDirectory() {
+    public void testWithNullStringDirectory() {
         FileDialogConfiguration fileDialogConfiguration = new FileDialogConfiguration.Builder()
                 .withInitialDirectory((String) null).build();
 
@@ -45,7 +51,7 @@ class FileDialogConfigurationTest {
     }
 
     @Test
-    void testWithNullPathDirectory() {
+    public void testWithNullPathDirectory() {
         FileDialogConfiguration fileDialogConfiguration = new FileDialogConfiguration.Builder()
                 .withInitialDirectory((Path) null).build();
 
@@ -53,7 +59,7 @@ class FileDialogConfigurationTest {
     }
 
     @Test
-    void testWithNonExistingDirectoryAndParentNull() {
+    public void testWithNonExistingDirectoryAndParentNull() {
         String tempFolder = "workingDirectory";
         FileDialogConfiguration fileDialogConfiguration = new FileDialogConfiguration.Builder()
                 .withInitialDirectory(tempFolder).build();
@@ -62,7 +68,7 @@ class FileDialogConfigurationTest {
     }
 
     @Test
-    void testSingleExtension() {
+    public void testSingleExtension() {
         FileDialogConfiguration fileDialogConfiguration = new FileDialogConfiguration.Builder()
                 .withDefaultExtension(StandardFileType.BIBTEX_DB).build();
 
@@ -75,4 +81,5 @@ class FileDialogConfigurationTest {
         return new FileChooser.ExtensionFilter(description,
                 extension.getExtensions().stream().map(ending -> "*." + ending).collect(Collectors.toList()));
     }
+
 }

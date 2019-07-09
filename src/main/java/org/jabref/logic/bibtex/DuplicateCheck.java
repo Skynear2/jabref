@@ -117,10 +117,10 @@ public class DuplicateCheck {
     }
 
     private static boolean haveDifferentChaptersOrPagesOfTheSameBook(final BibEntry one, final BibEntry two) {
-        return (compareSingleField(AUTHOR, one, two) == EQUAL) &&
-                (compareSingleField(TITLE, one, two) == EQUAL) &&
-                ((compareSingleField(CHAPTER, one, two) == NOT_EQUAL) ||
-                        (compareSingleField(PAGES, one, two) == NOT_EQUAL));
+        return compareSingleField(AUTHOR, one, two) == EQUAL &&
+                compareSingleField(TITLE, one, two) == EQUAL &&
+                (compareSingleField(CHAPTER, one, two) == NOT_EQUAL ||
+                        compareSingleField(PAGES, one, two) == NOT_EQUAL);
 
     }
 
@@ -289,9 +289,12 @@ public class DuplicateCheck {
     public static Optional<BibEntry> containsDuplicate(final BibDatabase database,
                                                        final BibEntry entry,
                                                        final BibDatabaseMode bibDatabaseMode) {
-
-        return database.getEntries().stream().filter(other -> DuplicateCheck.isDuplicate(entry, other, bibDatabaseMode)).findFirst();
-
+        for (final BibEntry other : database.getEntries()) {
+            if (DuplicateCheck.isDuplicate(entry, other, bibDatabaseMode)) {
+                return Optional.of(other); // Duplicate found.
+            }
+        }
+        return Optional.empty(); // No duplicate found.
     }
 
     /**
@@ -316,7 +319,8 @@ public class DuplicateCheck {
         return 1 - missRate;
     }
 
-    /**
+
+    /*
      * Calculates the similarity (a number within 0 and 1) between two strings.
      * http://stackoverflow.com/questions/955110/similarity-string-comparison-in-java
      */
@@ -338,7 +342,7 @@ public class DuplicateCheck {
             return 1.0;
         }
         final double distanceIgnoredCase = new StringSimilarity().editDistanceIgnoreCase(longer, shorter);
-        final double similarity = (longerLength - distanceIgnoredCase) / longerLength;
+        final double similarity = (longerLength - distanceIgnoredCase) / (double) longerLength;
         LOGGER.debug("Longer string: " + longer + " Shorter string: " + shorter + " Similarity: " + similarity);
         return similarity;
     }

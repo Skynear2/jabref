@@ -1,36 +1,40 @@
 package org.jabref.gui.collab;
 
-import javafx.scene.Node;
-import javafx.scene.control.Label;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
 
+import org.jabref.gui.BasePanel;
 import org.jabref.gui.groups.GroupTreeNodeViewModel;
 import org.jabref.gui.groups.UndoableModifySubtree;
 import org.jabref.gui.undo.NamedCompound;
 import org.jabref.logic.bibtex.comparator.GroupDiff;
 import org.jabref.logic.groups.DefaultGroupsFactory;
 import org.jabref.logic.l10n.Localization;
-import org.jabref.model.database.BibDatabaseContext;
+import org.jabref.model.database.BibDatabase;
 import org.jabref.model.groups.GroupTreeNode;
 
-class GroupChangeViewModel extends DatabaseChangeViewModel {
+class GroupChangeViewModel extends ChangeViewModel {
 
     private final GroupTreeNode changedGroups;
+    private final GroupTreeNode tmpGroupRoot;
+
 
     public GroupChangeViewModel(GroupDiff diff) {
         super(diff.getOriginalGroupRoot() == null ? Localization.lang("Removed all groups") : Localization
                 .lang("Modified groups tree"));
-        this.changedGroups = diff.getNewGroupRoot();
+        this.changedGroups = diff.getOriginalGroupRoot();
+        this.tmpGroupRoot = diff.getNewGroupRoot();
     }
 
     @Override
-    public void makeChange(BibDatabaseContext database, NamedCompound undoEdit) {
-        GroupTreeNode root = database.getMetaData().getGroups().orElse(null);
+    public boolean makeChange(BasePanel panel, BibDatabase secondary, NamedCompound undoEdit) {
+        GroupTreeNode root = panel.getBibDatabaseContext().getMetaData().getGroups().orElse(null);
         if (root == null) {
             root = new GroupTreeNode(DefaultGroupsFactory.getAllEntriesGroup());
-            database.getMetaData().setGroups(root);
+            panel.getBibDatabaseContext().getMetaData().setGroups(root);
         }
         final UndoableModifySubtree undo = new UndoableModifySubtree(
-                new GroupTreeNodeViewModel(database.getMetaData().getGroups().orElse(null)),
+                new GroupTreeNodeViewModel(panel.getBibDatabaseContext().getMetaData().getGroups().orElse(null)),
                 new GroupTreeNodeViewModel(root), Localization.lang("Modified groups"));
         root.removeAllChildren();
         if (changedGroups == null) {
@@ -45,13 +49,28 @@ class GroupChangeViewModel extends DatabaseChangeViewModel {
         }
 
         undoEdit.addEdit(undo);
+
+        // Update tmp database:
+        if (tmpGroupRoot != null) {
+            tmpGroupRoot.removeAllChildren();
+            if (changedGroups != null) {
+                GroupTreeNode copied = changedGroups.copySubtree();
+                tmpGroupRoot.setGroup(copied.getGroup());
+                for (GroupTreeNode child : copied.getChildren()) {
+                    child.copySubtree().moveTo(tmpGroupRoot);
+                }
+            }
+        }
+
+        return true;
     }
 
     @Override
-    public Node description() {
-        return new Label(toString() + '.'
+    public JComponent description() {
+        return new JLabel("<html>" + toString() + '.'
                 + (changedGroups == null ? "" : ' ' + Localization
-                .lang("Accepting the change replaces the complete groups tree with the externally modified groups tree.")));
+                        .lang("Accepting the change replaces the complete groups tree with the externally modified groups tree."))
+                + "</html>");
 
     }
 }

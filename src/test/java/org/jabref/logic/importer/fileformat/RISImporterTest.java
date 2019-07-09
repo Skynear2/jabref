@@ -48,4 +48,5 @@ public class RISImporterTest {
         Path file = Paths.get(RISImporterTest.class.getResource("RisImporterCorrupted.ris").toURI());
         assertFalse(importer.isRecognizedFormat(file, StandardCharsets.UTF_8));
     }
+
 }

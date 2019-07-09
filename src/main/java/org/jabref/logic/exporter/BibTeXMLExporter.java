@@ -141,7 +141,7 @@ public class BibTeXMLExporter extends Exporter {
     }
 
     /**
-     * Contains same logic as the {@link #parse(Object, BibEntry, Entry)} method, but inbook needs a special treatment, because
+     * Contains same logic as the {@link parse()} method, but inbook needs a special treatment, because
      * the contents of inbook are stored in a List of JAXBElements. So we first need to create
      * a JAXBElement for every field and then add it to the content list.
      */
@@ -192,37 +192,33 @@ public class BibTeXMLExporter extends Exporter {
      */
     private <T> void parse(T entryType, BibEntry bibEntry, Entry entry) {
         List<Method> declaredSetMethods = getListOfSetMethods(entryType);
-        for (Map.Entry<String, String> entryField : bibEntry.getFieldMap().entrySet()) {
-            String key = entryField.getKey();
+        Map<String, String> fieldMap = bibEntry.getFieldMap();
+        for (Map.Entry<String, String> entryField : fieldMap.entrySet()) {
             String value = entryField.getValue();
+            String key = entryField.getKey();
             for (Method method : declaredSetMethods) {
                 String methodNameWithoutSet = method.getName().replace("set", "").toLowerCase(ENGLISH);
-                if (!methodNameWithoutSet.equals(key)) {
-                    continue;
-                }
-
                 try {
-                    if ("year".equals(key)) {
+
+                    if ("year".equals(key) && key.equals(methodNameWithoutSet)) {
                         try {
-                            XMLGregorianCalendar calendar = DatatypeFactory.newInstance().newXMLGregorianCalendar(value);
+
+                            XMLGregorianCalendar calendar = DatatypeFactory.newInstance()
+                                    .newXMLGregorianCalendar(value);
                             method.invoke(entryType, calendar);
                         } catch (DatatypeConfigurationException e) {
                             LOGGER.error("A configuration error occured");
                         }
                         break;
-                    } else if ("number".equals(key)) {
-                        try {
-                            method.invoke(entryType, new BigInteger(value));
-                        } catch (NumberFormatException exception) {
-                            LOGGER.warn("The value %s of the 'number' field is not an integer and thus is ignored for the export", value);
-                        }
+                    } else if ("number".equals(key) && key.equals(methodNameWithoutSet)) {
+                        method.invoke(entryType, new BigInteger(value));
                         break;
-                    } else {
+                    } else if (key.equals(methodNameWithoutSet)) {
                         method.invoke(entryType, value);
                         break;
                     }
                 } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-                    LOGGER.error("Could not invoke method " + method.getName(), e);
+                    LOGGER.error("Could not invoke method", e);
                 }
             }
 

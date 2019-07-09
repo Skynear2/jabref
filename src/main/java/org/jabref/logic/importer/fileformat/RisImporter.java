@@ -2,9 +2,6 @@ package org.jabref.logic.importer.fileformat;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.time.Year;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,14 +16,12 @@ import org.jabref.logic.util.OS;
 import org.jabref.logic.util.StandardFileType;
 import org.jabref.model.entry.AuthorList;
 import org.jabref.model.entry.BibEntry;
-import org.jabref.model.entry.BibtexEntryTypes;
 import org.jabref.model.entry.FieldName;
 import org.jabref.model.entry.Month;
 
 public class RisImporter extends Importer {
 
     private static final Pattern RECOGNIZED_FORMAT_PATTERN = Pattern.compile("TY  - .*");
-    private static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy");
 
     @Override
     public String getName() {
@@ -57,11 +52,9 @@ public class RisImporter extends Importer {
         String linesAsString = reader.lines().reduce((line, nextline) -> line + "\n" + nextline).orElse("");
 
         String[] entries = linesAsString.replace("\u2013", "-").replace("\u2014", "--").replace("\u2015", "--")
-                                        .split("ER  -.*\\n");
+                .split("ER  -.*\\n");
 
         for (String entry1 : entries) {
-
-            boolean foundDate = false;
 
             String type = "";
             String author = "";
@@ -80,7 +73,7 @@ public class RisImporter extends Importer {
                 while (!done && (j < (lines.length - 1))) {
                     if ((lines[j + 1].length() >= 6) && !"  - ".equals(lines[j + 1].substring(2, 6))) {
                         if ((current.length() > 0) && !Character.isWhitespace(current.charAt(current.length() - 1))
-                            && !Character.isWhitespace(lines[j + 1].charAt(0))) {
+                                && !Character.isWhitespace(lines[j + 1].charAt(0))) {
                             current.append(' ');
                         }
                         current.append(lines[j + 1]);
@@ -129,7 +122,7 @@ public class RisImporter extends Importer {
                         fields.put(FieldName.TITLE, fields.get(FieldName.TITLE).replaceAll("\\s+", " ")); // Normalize whitespaces
                     } else if ("BT".equals(tag)) {
                         fields.put(FieldName.BOOKTITLE, value);
-                    } else if (("T2".equals(tag) || "J2".equals(tag) || "JA".equals(tag)) && ((fields.get(FieldName.JOURNAL) == null) || "".equals(fields.get(FieldName.JOURNAL)))) {
+                    } else if (("T2".equals(tag) || "J2".equals(tag) || "JA".equals(tag)) && (fields.get(FieldName.JOURNAL) == null || "".equals(fields.get(FieldName.JOURNAL)))) {
                         //if there is no journal title, then put second title as journal title
                         fields.put(FieldName.JOURNAL, value);
                     } else if ("JO".equals(tag) || "J1".equals(tag) || "JF".equals(tag)) {
@@ -193,18 +186,8 @@ public class RisImporter extends Importer {
                         }
                     } else if ("UR".equals(tag) || "L2".equals(tag) || "LK".equals(tag)) {
                         fields.put(FieldName.URL, value);
-                    } else if (!foundDate && (("Y1".equals(tag) || "Y2".equals(tag) || "PY".equals(tag) || "DA".equals(tag)) && (value.length() >= 4))) {
-                        String year = value.substring(0, 4);
-
-                        try {
-                            Year.parse(year, formatter);
-                            //if the year is parsebale we have found our date
-                            fields.put(FieldName.YEAR, value.substring(0, 4));
-                            foundDate = true;
-                        } catch (DateTimeParseException ex) {
-                            //We can't parse the year, we ignore it
-                        }
-
+                    } else if (("Y1".equals(tag) || "Y2".equals(tag) || "PY".equals(tag) || "DA".equals(tag)) && (value.length() >= 4)) {
+                        fields.put(FieldName.YEAR, value.substring(0, 4));
                         String[] parts = value.split("/");
                         if ((parts.length > 1) && !parts[1].isEmpty()) {
                             try {
@@ -226,7 +209,7 @@ public class RisImporter extends Importer {
                             comment = comment + OS.NEWLINE;
                         }
                         comment = comment + value;
-                    } else if ("M3".equals(tag) || "DO".equals(tag)) {
+                    }  else if ("M3".equals(tag) || "DO".equals(tag)) {
                         addDoi(fields, value);
                     } else if ("C3".equals(tag)) {
                         fields.put(FieldName.EVENTTITLE, value);
@@ -282,7 +265,7 @@ public class RisImporter extends Importer {
 
             // create one here
             // type is set in the loop above
-            BibEntry entry = new BibEntry(BibtexEntryTypes.getTypeOrDefault(type));
+            BibEntry entry = new BibEntry(type);
             entry.setField(fields);
             // month has a special treatment as we use the separate method "setMonth" of BibEntry instead of directly setting the value
             month.ifPresent(entry::setMonth);

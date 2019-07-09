@@ -6,15 +6,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.jabref.model.EntryTypes;
 import org.jabref.model.FieldChange;
-import org.jabref.model.database.BibDatabaseMode;
 import org.jabref.model.entry.BibEntry;
-import org.jabref.model.entry.EntryType;
 import org.jabref.model.entry.KeywordList;
 import org.jabref.model.strings.StringUtil;
 
@@ -56,11 +51,11 @@ public class WordKeywordGroup extends KeywordGroup implements GroupEntryChanger 
     }
 
     @Override
-    public List<FieldChange> add(Collection<BibEntry> entriesToAdd) {
+    public List<FieldChange> add(List<BibEntry> entriesToAdd) {
         Objects.requireNonNull(entriesToAdd);
 
         List<FieldChange> changes = new ArrayList<>();
-        for (BibEntry entry : new ArrayList<>(entriesToAdd)) {
+        for (BibEntry entry : entriesToAdd) {
             if (!contains(entry)) {
                 String oldContent = entry.getField(searchField).orElse("");
                 KeywordList wordlist = KeywordList.parse(oldContent, keywordSeparator);
@@ -76,7 +71,7 @@ public class WordKeywordGroup extends KeywordGroup implements GroupEntryChanger 
     public List<FieldChange> remove(List<BibEntry> entriesToRemove) {
         Objects.requireNonNull(entriesToRemove);
         List<FieldChange> changes = new ArrayList<>();
-        for (BibEntry entry : new ArrayList<>(entriesToRemove)) {
+        for (BibEntry entry : entriesToRemove) {
             if (contains(entry)) {
                 String oldContent = entry.getField(searchField).orElse("");
                 KeywordList wordlist = KeywordList.parse(oldContent, keywordSeparator);
@@ -118,12 +113,6 @@ public class WordKeywordGroup extends KeywordGroup implements GroupEntryChanger 
 
     private Set<String> getFieldContentAsWords(BibEntry entry) {
         if (onlySplitWordsAtSeparator) {
-            if (BibEntry.TYPE_HEADER.equals(searchField)) {
-                Optional<EntryType> entryType = EntryTypes.getType(entry.getType(), BibDatabaseMode.BIBLATEX);
-                if (entryType.isPresent()) {
-                    return searchWords.stream().filter(sw -> entryType.get().getName().equals(sw)).collect(Collectors.toSet());
-                }
-            }
             return entry.getField(searchField)
                     .map(content -> KeywordList.parse(content, keywordSeparator).toStringList())
                     .orElse(Collections.emptySet());

@@ -1,7 +1,6 @@
 package org.jabref.model.groups;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -162,16 +161,6 @@ public class GroupTreeNode extends TreeNode<GroupTreeNode> {
         return groups;
     }
 
-    /**
-     * Determines all groups in the subtree starting at this node which contain the given entry.
-     */
-    public List<GroupTreeNode> getMatchingGroups(BibEntry entry) {
-        return getMatchingGroups(Collections.singletonList(entry));
-    }
-
-    /**
-     * Determines all groups in the subtree starting at this node which contain at least one of the given entries.
-     */
     public List<GroupTreeNode> getMatchingGroups(List<BibEntry> entries) {
         List<GroupTreeNode> groups = new ArrayList<>();
 
@@ -222,11 +211,15 @@ public class GroupTreeNode extends TreeNode<GroupTreeNode> {
      * @param entries list of entries to be searched
      * @return number of hits
      */
-    public long calculateNumberOfMatches(List<BibEntry> entries) {
+    public int calculateNumberOfMatches(List<BibEntry> entries) {
+        int hits = 0;
         SearchMatcher matcher = getSearchMatcher();
-        return entries.stream()
-                      .filter(matcher::isMatch)
-                      .count();
+        for (BibEntry entry : entries) {
+            if (matcher.isMatch(entry)) {
+                hits++;
+            }
+        }
+        return hits;
     }
 
     /**
@@ -234,7 +227,7 @@ public class GroupTreeNode extends TreeNode<GroupTreeNode> {
      * @param database database to be searched
      * @return number of hits
      */
-    public long calculateNumberOfMatches(BibDatabase database) {
+    public int calculateNumberOfMatches(BibDatabase database) {
         return calculateNumberOfMatches(database.getEntries());
     }
 
@@ -293,7 +286,7 @@ public class GroupTreeNode extends TreeNode<GroupTreeNode> {
      * If the group does not support explicit adding of entries (i.e., does not implement {@link GroupEntryChanger}),
      * then no action is performed.
      */
-    public List<FieldChange> addEntriesToGroup(Collection<BibEntry> entries) {
+    public List<FieldChange> addEntriesToGroup(List<BibEntry> entries) {
         if (getGroup() instanceof GroupEntryChanger) {
             return ((GroupEntryChanger) getGroup()).add(entries);
         } else {

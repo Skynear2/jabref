@@ -16,7 +16,6 @@ import org.jabref.logic.util.OS;
 import org.jabref.logic.util.StandardFileType;
 import org.jabref.model.entry.AuthorList;
 import org.jabref.model.entry.BibEntry;
-import org.jabref.model.entry.BibtexEntryTypes;
 import org.jabref.model.entry.FieldName;
 
 /**
@@ -24,6 +23,8 @@ import org.jabref.model.entry.FieldName;
  *
  * check here for details on the format
  * http://www.nlm.nih.gov/bsd/mms/medlineelements.html
+ *
+ * @author vegeziel
  */
 public class MedlinePlainImporter extends Importer {
 
@@ -209,7 +210,7 @@ public class MedlinePlainImporter extends Importer {
                 fields.put(FieldName.COMMENT, comment);
             }
 
-            BibEntry b = new BibEntry(BibtexEntryTypes.getTypeOrDefault(type));
+            BibEntry b = new BibEntry(type);
 
             // Remove empty fields:
             fields.entrySet().stream().filter(n -> n.getValue().trim().isEmpty()).forEach(fields::remove);
@@ -358,7 +359,7 @@ public class MedlinePlainImporter extends Importer {
             if (value.contains("Copyright")) {
                 int copyrightIndex = value.lastIndexOf("Copyright");
                 //remove the copyright from the field since the name of the field is copyright
-                String copyrightInfo = value.substring(copyrightIndex).replaceAll("Copyright ", "");
+                String copyrightInfo = value.substring(copyrightIndex, value.length()).replaceAll("Copyright ", "");
                 hm.put("copyright", copyrightInfo);
                 abstractValue = value.substring(0, copyrightIndex);
             } else {

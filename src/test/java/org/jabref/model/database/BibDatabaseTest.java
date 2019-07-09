@@ -11,10 +11,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.jabref.model.entry.BibEntry;
-import org.jabref.model.entry.BiblatexEntryTypes;
-import org.jabref.model.entry.BibtexEntryTypes;
 import org.jabref.model.entry.BibtexString;
-import org.jabref.model.entry.CustomEntryType;
 import org.jabref.model.entry.IdGenerator;
 import org.jabref.model.event.TestEventListener;
 
@@ -61,6 +58,7 @@ public class BibDatabaseTest {
         BibEntry entry1 = new BibEntry();
         entry1.setId(entry0.getId());
         assertThrows(KeyCollisionException.class, () -> database.insertEntry(entry1));
+
     }
 
     @Test
@@ -123,39 +121,13 @@ public class BibDatabaseTest {
     }
 
     @Test
-    public void setSingleStringAsCollection() {
-        BibtexString string = new BibtexString("DSP", "Digital Signal Processing");
-        List<BibtexString> strings = Arrays.asList(string);
-        database.setStrings(strings);
-        assertEquals(Optional.of(string), database.getStringByName("DSP"));
-    }
-
-    @Test
-    public void setStringAsCollectionWithUpdatedContentOverridesString() {
-        BibtexString string = new BibtexString("DSP", "Digital Signal Processing");
-        BibtexString newContent = new BibtexString("DSP", "ABCD");
-        List<BibtexString> strings = Arrays.asList(string, newContent);
-        database.setStrings(strings);
-        assertEquals(Optional.of(newContent), database.getStringByName("DSP"));
-    }
-
-    @Test
-    public void setStringAsCollectionWithNewContent() {
-        BibtexString string = new BibtexString("DSP", "Digital Signal Processing");
-        BibtexString vlsi = new BibtexString("VLSI", "Very Large Scale Integration");
-        List<BibtexString> strings = Arrays.asList(string, vlsi);
-        database.setStrings(strings);
-        assertEquals(Optional.of(string), database.getStringByName("DSP"));
-        assertEquals(Optional.of(vlsi), database.getStringByName("VLSI"));
-    }
-
-    @Test
     public void addSameStringLabelTwiceThrowsKeyCollisionException() {
         BibtexString string = new BibtexString("DSP", "Digital Signal Processing");
         database.addString(string);
         final BibtexString finalString = new BibtexString("DSP", "Digital Signal Processor");
 
         assertThrows(KeyCollisionException.class, () -> database.addString(finalString));
+
     }
 
     @Test
@@ -167,6 +139,7 @@ public class BibDatabaseTest {
         finalString.setId("duplicateid");
 
         assertThrows(KeyCollisionException.class, () -> database.addString(finalString));
+
     }
 
     @Test
@@ -280,7 +253,7 @@ public class BibDatabaseTest {
 
     @Test
     public void getUsedStrings() {
-        BibEntry entry = new BibEntry(new CustomEntryType(IdGenerator.next(), "required", "optional"));
+        BibEntry entry = new BibEntry(IdGenerator.next());
         entry.setField("author", "#AAA#");
         BibtexString tripleA = new BibtexString("AAA", "Some other #BBB#");
         BibtexString tripleB = new BibtexString("BBB", "Some more text");
@@ -328,9 +301,9 @@ public class BibDatabaseTest {
 
     @Test
     public void getEntriesSortedWithTwoEntries() {
-        BibEntry entryB = new BibEntry(BibtexEntryTypes.ARTICLE);
+        BibEntry entryB = new BibEntry("article");
         entryB.setId("2");
-        BibEntry entryA = new BibEntry(BiblatexEntryTypes.ARTICLE);
+        BibEntry entryA = new BibEntry("article");
         entryB.setId("1");
         database.insertEntries(entryB, entryA);
         assertEquals(Arrays.asList(entryA, entryB), database.getEntriesSorted(Comparator.comparing(BibEntry::getId)));
@@ -346,4 +319,5 @@ public class BibDatabaseTest {
         database.setPreamble("Oh yeah!");
         assertEquals(Optional.of("Oh yeah!"), database.getPreamble());
     }
+
 }

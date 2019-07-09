@@ -52,6 +52,7 @@ public class TooltipTextUtil {
         return textString;
     }
 
+
     /**
      * Formats a String to multiple Texts by replacing some parts and adding font characteristics.
      */

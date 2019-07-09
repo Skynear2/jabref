@@ -34,10 +34,6 @@ public class QuotedStringTokenizer {
         }
     }
 
-    /**
-     * @return the next token from the content string, ending at the next
-     * unquoted delimiter. Does not unquote the string itself.
-     */
     public String nextToken() {
         char c;
         StringBuilder stringBuilder = new StringBuilder();
@@ -45,7 +41,6 @@ public class QuotedStringTokenizer {
             c = content.charAt(index);
             if (c == quoteChar) { // next is quoted
                 ++index;
-                stringBuilder.append(c);
                 if (index < contentLength) {
                     stringBuilder.append(content.charAt(index));
                     // ignore for delimiter search!

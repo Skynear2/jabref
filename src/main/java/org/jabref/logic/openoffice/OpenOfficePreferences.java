@@ -1,6 +1,5 @@
 package org.jabref.logic.openoffice;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -10,8 +9,8 @@ public class OpenOfficePreferences {
     public static final String DEFAULT_WIN_EXEC_PATH = "C:\\Program Files\\LibreOffice 5\\program";
     public static final String WINDOWS_EXECUTABLE = "soffice.exe";
 
-    public static final String DEFAULT_OSX_PATH = "/Applications/LibreOffice.app";
-    public static final String DEFAULT_OSX_EXEC_PATH = "/Applications/LibreOffice.app/Contents/MacOS/soffice";
+    public static final String DEFAULT_OSX_PATH = "/Applications/OpenOffice.org.app";
+    public static final String DEFAULT_OSX_EXEC_PATH = "/Applications/OpenOffice.org.app/Contents/MacOS/soffice";
     public static final String OSX_EXECUTABLE = "soffice";
 
     public static final String DEFAULT_LINUX_PATH = "/usr/lib/libreoffice";
@@ -20,22 +19,22 @@ public class OpenOfficePreferences {
 
     public static final List<String> OO_JARS = Arrays.asList("unoil.jar", "jurt.jar", "juh.jar", "ridl.jar");
 
-    private String executablePath = "";
-    private String installationPath = "";
-    private boolean useAllDatabases;
-    private boolean syncWhenCiting;
-    private boolean showPanel;
-    private List<String> externalStyles = new ArrayList<>();
-    private String currentStyle = "";
-    private String jarsPath = "";
+    private String executablePath;
+    private String installationPath;
+    private Boolean useAllDatabases;
+    private Boolean syncWhenCiting;
+    private Boolean showPanel;
+    private List<String> externalStyles;
+    private String currentStyle;
+    private String jarsPath;
 
     public OpenOfficePreferences(
             String jarsPath,
             String executablePath,
             String installationPath,
-            boolean useAllDatabases,
-            boolean syncWhenCiting,
-            boolean showPanel,
+            Boolean useAllDatabases,
+            Boolean syncWhenCiting,
+            Boolean showPanel,
             List<String> externalStyles,
             String currentStyle
     ) {
@@ -94,18 +93,18 @@ public class OpenOfficePreferences {
         return syncWhenCiting;
     }
 
-    public void setSyncWhenCiting(boolean syncWhenCiting) {
+    public void setSyncWhenCiting(Boolean syncWhenCiting) {
         this.syncWhenCiting = syncWhenCiting;
     }
 
     /**
      * true if the OO panel is shown on startup
      */
-    public boolean getShowPanel() {
+    public Boolean getShowPanel() {
         return showPanel;
     }
 
-    public void setShowPanel(boolean showPanel) {
+    public void setShowPanel(Boolean showPanel) {
         this.showPanel = showPanel;
     }
 
@@ -149,9 +148,9 @@ public class OpenOfficePreferences {
     }
 
     public void clearConnectionSettings() {
-        this.installationPath = "";
-        this.executablePath = "";
-        this.jarsPath = "";
+        this.installationPath = null;
+        this.executablePath = null;
+        this.jarsPath = null;
     }
 
 }

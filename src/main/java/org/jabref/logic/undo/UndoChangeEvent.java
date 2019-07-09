@@ -43,6 +43,7 @@ public class UndoChangeEvent {
         return canRedo;
     }
 
+
     /**
     *
     * @return A description of the action to be redone

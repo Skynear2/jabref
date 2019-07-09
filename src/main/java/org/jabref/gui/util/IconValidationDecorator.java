@@ -8,7 +8,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 
-import org.jabref.gui.icon.IconTheme;
+import org.jabref.gui.IconTheme;
 
 import org.controlsfx.control.decoration.Decoration;
 import org.controlsfx.control.decoration.GraphicDecoration;
@@ -31,28 +31,24 @@ public class IconValidationDecorator extends GraphicValidationDecoration {
         this.position = position;
     }
 
-    @Override
     protected Node createErrorNode() {
-        return IconTheme.JabRefIcons.ERROR.getGraphicNode();
+        return IconTheme.JabRefIcon.ERROR.getGraphicNode();
     }
 
-    @Override
     protected Node createWarningNode() {
-        return IconTheme.JabRefIcons.WARNING.getGraphicNode();
+        return IconTheme.JabRefIcon.WARNING.getGraphicNode();
     }
 
-    @Override
     public Node createDecorationNode(ValidationMessage message) {
         Node graphic = Severity.ERROR == message.getSeverity() ? createErrorNode() : createWarningNode();
         graphic.getStyleClass().add(Severity.ERROR == message.getSeverity() ? "error-icon" : "warning-icon");
         Label label = new Label();
         label.setGraphic(graphic);
         label.setTooltip(createTooltip(message));
-        label.setAlignment(position);
+        label.setAlignment(Pos.CENTER);
         return label;
     }
 
-    @Override
     protected Tooltip createTooltip(ValidationMessage message) {
         Tooltip tooltip = new Tooltip(message.getText());
         tooltip.getStyleClass().add(Severity.ERROR == message.getSeverity() ? "tooltip-error" : "tooltip-warning");

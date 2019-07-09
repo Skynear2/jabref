@@ -4,8 +4,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.scene.paint.Color;
 
 import org.jabref.model.entry.BibEntry;
@@ -20,7 +18,7 @@ public abstract class AbstractGroup implements SearchMatcher {
     /**
      * The group's name.
      */
-    protected final StringProperty name = new SimpleStringProperty();
+    protected final String name;
     /**
      * The hierarchical context of the group.
      */
@@ -31,14 +29,14 @@ public abstract class AbstractGroup implements SearchMatcher {
     protected Optional<String> iconName = Optional.empty();
 
     protected AbstractGroup(String name, GroupHierarchyType context) {
-        this.name.setValue(name);
+        this.name = name;
         this.context = Objects.requireNonNull(context);
     }
 
     @Override
     public String toString() {
         return "AbstractGroup{" +
-                "name='" + name.getValue() + '\'' +
+                "name='" + name + '\'' +
                 ", context=" + context +
                 ", color=" + color +
                 ", isExpanded=" + isExpanded +
@@ -56,13 +54,13 @@ public abstract class AbstractGroup implements SearchMatcher {
             return false;
         }
         AbstractGroup that = (AbstractGroup) other;
-        return Objects.equals(this.name.getValue(), that.name.getValue()) && Objects.equals(this.description, that.description)
+        return Objects.equals(this.name, that.name) && Objects.equals(this.description, that.description)
                 && Objects.equals(this.context, that.context);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name.getValue(), description, context);
+        return Objects.hash(name, description, context);
     }
 
     public Optional<Color> getColor() {
@@ -124,10 +122,6 @@ public abstract class AbstractGroup implements SearchMatcher {
      * Returns this group's name, e.g. for display in a list/tree.
      */
     public final String getName() {
-        return name.getValue();
-    }
-
-    public StringProperty nameProperty() {
         return name;
     }
 

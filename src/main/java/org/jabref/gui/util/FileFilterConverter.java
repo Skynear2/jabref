@@ -1,6 +1,5 @@
 package org.jabref.gui.util;
 
-import java.io.FileFilter;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -13,8 +12,6 @@ import org.jabref.logic.exporter.Exporter;
 import org.jabref.logic.importer.Importer;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.logic.util.FileType;
-import org.jabref.logic.util.io.FileUtil;
-import org.jabref.model.strings.StringUtil;
 
 public class FileFilterConverter {
 
@@ -23,12 +20,12 @@ public class FileFilterConverter {
     private FileFilterConverter() {
     }
 
-    public static FileChooser.ExtensionFilter toExtensionFilter(FileType fileType) {
+    static FileChooser.ExtensionFilter toExtensionFilter(FileType fileType) {
         String description = Localization.lang("%0 file", fileType.toString());
         return new FileChooser.ExtensionFilter(description, fileType.getExtensionsWithDot());
     }
 
-    public static FileChooser.ExtensionFilter toExtensionFilter(String description, FileType fileType) {
+    static FileChooser.ExtensionFilter toExtensionFilter(String description, FileType fileType) {
         return new FileChooser.ExtensionFilter(description, fileType.getExtensionsWithDot());
     }
 
@@ -59,21 +56,5 @@ public class FileFilterConverter {
         return exporters.stream()
                         .map(exporter -> toExtensionFilter(exporter.getName(), exporter.getFileType()))
                         .collect(Collectors.toList());
-    }
-
-    public static FileFilter toFileFilter(FileChooser.ExtensionFilter extensionFilter) {
-        List<String> extensionsCleaned = extensionFilter.getExtensions()
-                                                        .stream()
-                                                        .map(extension -> extension.replace(".", "").replace("*", ""))
-                                                        .filter(StringUtil::isNotBlank)
-                                                        .collect(Collectors.toList());
-        if (extensionsCleaned.isEmpty()) {
-            // Except every file
-            return pathname -> true;
-        } else {
-            return pathname -> FileUtil.getFileExtension(pathname.toPath())
-                                       .map(extensionsCleaned::contains)
-                                       .orElse(false);
-        }
     }
 }

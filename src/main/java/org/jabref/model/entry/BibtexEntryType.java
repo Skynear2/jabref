@@ -56,9 +56,4 @@ public abstract class BibtexEntryType implements EntryType {
     private boolean isPrimary(String field) {
         return getPrimaryOptionalFields().contains(field);
     }
-
-    @Override
-    public String toString() {
-        return getName();
-    }
 }

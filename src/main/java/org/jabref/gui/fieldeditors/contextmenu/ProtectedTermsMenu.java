@@ -3,12 +3,16 @@ package org.jabref.gui.fieldeditors.contextmenu;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.swing.SwingUtilities;
+
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
-import javafx.scene.control.TextInputControl;
+import javafx.scene.control.TextArea;
 
 import org.jabref.Globals;
+import org.jabref.JabRefGUI;
+import org.jabref.gui.protectedterms.NewProtectedTermsFileDialog;
 import org.jabref.logic.formatter.casechanger.ProtectTermsFormatter;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.logic.protectedterms.ProtectedTermsList;
@@ -19,9 +23,9 @@ class ProtectedTermsMenu extends Menu {
 
     private static final Formatter FORMATTER = new ProtectTermsFormatter(Globals.protectedTermsLoader);
     private final Menu externalFiles;
-    private final TextInputControl opener;
+    private final TextArea opener;
 
-    public ProtectedTermsMenu(final TextInputControl opener) {
+    public ProtectedTermsMenu(TextArea opener) {
         super(Localization.lang("Protect terms"));
         this.opener = opener;
         MenuItem protectItem = new MenuItem(Localization.lang("Add {} around selected text"));
@@ -61,5 +65,21 @@ class ProtectedTermsMenu extends Menu {
             externalFiles.getItems().add(fileItem);
         }
         externalFiles.getItems().add(new SeparatorMenuItem());
+        MenuItem addToNewFileItem = new MenuItem(Localization.lang("New") + "...");
+        addToNewFileItem.setOnAction(event -> {
+            NewProtectedTermsFileDialog dialog = new NewProtectedTermsFileDialog(JabRefGUI.getMainFrame(),
+                    loader);
+
+            SwingUtilities.invokeLater(() -> {
+                dialog.setVisible(true);
+
+                if (dialog.isOKPressed()) {
+                    // Update preferences with new list
+                    Globals.prefs.setProtectedTermsPreferences(loader);
+                    this.updateFiles();
+                }
+            });
+        });
+        externalFiles.getItems().add(addToNewFileItem);
     }
 }

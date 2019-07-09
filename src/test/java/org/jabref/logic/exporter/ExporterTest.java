@@ -7,40 +7,55 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.Map;
 
 import org.jabref.logic.layout.LayoutFormatterPreferences;
 import org.jabref.logic.xmp.XmpPreferences;
 import org.jabref.model.database.BibDatabaseContext;
 import org.jabref.model.entry.BibEntry;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
+@RunWith(Parameterized.class)
 public class ExporterTest {
 
+    public Exporter exportFormat;
+    public String exportFormatName;
     public BibDatabaseContext databaseContext;
     public Charset charset;
     public List<BibEntry> entries;
 
-    @BeforeEach
+    public ExporterTest(Exporter format, String name) {
+        exportFormat = format;
+        exportFormatName = name;
+    }
+
+    @Rule
+    public TemporaryFolder testFolder = new TemporaryFolder();
+
+
+    @Before
     public void setUp() {
         databaseContext = new BibDatabaseContext();
         charset = StandardCharsets.UTF_8;
         entries = Collections.emptyList();
     }
 
-    private static Stream<Object[]> exportFormats() {
+    @Parameterized.Parameters(name = "{index}: {1}")
+    public static Collection<Object[]> exportFormats() {
         Collection<Object[]> result = new ArrayList<>();
 
-        List<TemplateExporter> customFormats = new ArrayList<>();
+        Map<String, TemplateExporter> customFormats = new HashMap<>();
         LayoutFormatterPreferences layoutPreferences = mock(LayoutFormatterPreferences.class);
         SavePreferences savePreferences = mock(SavePreferences.class);
         XmpPreferences xmpPreferences = mock(XmpPreferences.class);
@@ -49,35 +64,25 @@ public class ExporterTest {
         for (Exporter format : exporterFactory.getExporters()) {
             result.add(new Object[]{format, format.getName()});
         }
-        return result.stream();
+        return result;
     }
 
-    @ParameterizedTest
-    @MethodSource("exportFormats")
-    public void testExportingEmptyDatabaseYieldsEmptyFile(Exporter exportFormat, String name, @TempDir Path testFolder) throws Exception {
-        Path tmpFile = testFolder.resolve("ARandomlyNamedFile");
-        Files.createFile(tmpFile);
+    @Test
+    public void testExportingEmptyDatabaseYieldsEmptyFile() throws Exception {
+        Path tmpFile = testFolder.newFile().toPath();
         exportFormat.export(databaseContext, tmpFile, charset, entries);
         assertEquals(Collections.emptyList(), Files.readAllLines(tmpFile));
     }
 
-    @ParameterizedTest
-    @MethodSource("exportFormats")
-    public void testExportingNullDatabaseThrowsNPE(Exporter exportFormat, String name, @TempDir Path testFolder) {
-        assertThrows(NullPointerException.class, () -> {
-            Path tmpFile = testFolder.resolve("ARandomlyNamedFile");
-            Files.createFile(tmpFile);
-            exportFormat.export(null, tmpFile, charset, entries);
-        });
+    @Test(expected = NullPointerException.class)
+    public void testExportingNullDatabaseThrowsNPE() throws Exception {
+        Path tmpFile = testFolder.newFile().toPath();
+        exportFormat.export(null, tmpFile, charset, entries);
     }
 
-    @ParameterizedTest
-    @MethodSource("exportFormats")
-    public void testExportingNullEntriesThrowsNPE(Exporter exportFormat, String name, @TempDir Path testFolder) {
-        assertThrows(NullPointerException.class, () -> {
-            Path tmpFile = testFolder.resolve("ARandomlyNamedFile");
-            Files.createFile(tmpFile);
-            exportFormat.export(databaseContext, tmpFile, charset, null);
-        });
+    @Test(expected = NullPointerException.class)
+    public void testExportingNullEntriesThrowsNPE() throws Exception {
+        Path tmpFile = testFolder.newFile().toPath();
+        exportFormat.export(databaseContext, tmpFile, charset, null);
     }
 }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.jabref.Globals;
+import org.jabref.gui.customentrytypes.CustomEntryTypesManager;
 import org.jabref.model.EntryTypes;
 import org.jabref.model.database.BibDatabaseMode;
 import org.jabref.model.entry.CustomEntryType;
@@ -35,7 +36,7 @@ class CustomEntryTypePreferenceMigration {
             number++;
         }
 
-        prefs.saveCustomEntryTypes();
+        CustomEntryTypesManager.saveCustomEntryTypes(prefs);
     }
 
     /**

@@ -48,6 +48,7 @@ public final class BibtexCaseChanger {
             return asChar;
         }
 
+
         /**
          * Convert bstFormat char into ENUM
          *
@@ -71,6 +72,7 @@ public final class BibtexCaseChanger {
      *
      * @param s the string to handle
      * @param format the format
+     * @return
      */
     public static String changeCase(String s, FORMAT_MODE format) {
         return (new BibtexCaseChanger()).doChangeCase(s, format);

@@ -1,5 +1,6 @@
 package org.jabref.gui.undo;
 
+import org.jabref.gui.BasePanel;
 import org.jabref.logic.l10n.Localization;
 import org.jabref.model.database.BibDatabase;
 import org.jabref.model.database.KeyCollisionException;
@@ -14,10 +15,14 @@ public class UndoableInsertString extends AbstractUndoableJabRefEdit {
     private static final Logger LOGGER = LoggerFactory.getLogger(UndoableInsertString.class);
 
     private final BibDatabase base;
+    private final BasePanel panel;
     private final BibtexString string;
 
-    public UndoableInsertString(BibDatabase base, BibtexString string) {
+
+    public UndoableInsertString(BasePanel panel, BibDatabase base,
+            BibtexString string) {
         this.base = base;
+        this.panel = panel;
         this.string = string;
     }
 
@@ -32,6 +37,7 @@ public class UndoableInsertString extends AbstractUndoableJabRefEdit {
 
         // Revert the change.
         base.removeString(string.getId());
+        panel.updateStringDialog();
     }
 
     @Override
@@ -44,5 +50,8 @@ public class UndoableInsertString extends AbstractUndoableJabRefEdit {
         } catch (KeyCollisionException ex) {
             LOGGER.warn("Problem to redo `insert entry`", ex);
         }
+
+        panel.updateStringDialog();
     }
+
 }

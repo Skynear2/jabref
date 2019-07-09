@@ -70,7 +70,7 @@ public class SpecialFieldAction implements BaseAction {
                 } else {
                     outText = getTextDone(specialField, value, Integer.toString(bes.size()));
                 }
-                frame.getDialogService().notify(outText);
+                frame.output(outText);
             } else {
                 // if user does not change anything with his action, we do not do anything either
                 // even no output message
@@ -83,7 +83,7 @@ public class SpecialFieldAction implements BaseAction {
     private String getTextDone(SpecialField field, String... params) {
         Objects.requireNonNull(params);
 
-        SpecialFieldViewModel viewModel = new SpecialFieldViewModel(field, frame.getCurrentBasePanel().getUndoManager());
+        SpecialFieldViewModel viewModel = new SpecialFieldViewModel(field);
 
         if (field.isSingleValueField() && (params.length == 1) && (params[0] != null)) {
             // Single value fields can be toggled only

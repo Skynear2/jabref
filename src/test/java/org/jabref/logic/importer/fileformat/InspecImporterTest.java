@@ -22,8 +22,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class InspecImporterTest {
 
-    private static final String FILE_ENDING = ".txt";
     private InspecImporter importer;
+
+    private static final String FILE_ENDING = ".txt";
+
+    @BeforeEach
+    public void setUp() throws Exception {
+        this.importer = new InspecImporter();
+    }
 
     private static Stream<String> fileNames() throws IOException {
         Predicate<String> fileName = name -> name.startsWith("InspecImportTest")
@@ -35,11 +41,6 @@ public class InspecImporterTest {
     private static Stream<String> nonInspecfileNames() throws IOException {
         Predicate<String> fileName = name -> !name.startsWith("InspecImportTest");
         return ImporterTestEngine.getTestFiles(fileName).stream();
-    }
-
-    @BeforeEach
-    public void setUp() throws Exception {
-        this.importer = new InspecImporter();
     }
 
     @ParameterizedTest
@@ -125,4 +126,5 @@ public class InspecImporterTest {
     public void testGetDescription() {
         assertEquals("INSPEC format importer.", importer.getDescription());
     }
+
 }

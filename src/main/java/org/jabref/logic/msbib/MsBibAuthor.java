@@ -48,7 +48,7 @@ public class MsBibAuthor {
     }
 
     public String getLastName() {
-        return author.getLastOnly();
+        return author.getLast().orElse(null);
     }
 
     public String getFirstLast() {

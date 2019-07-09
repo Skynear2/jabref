@@ -1,7 +1,6 @@
 package org.jabref.model.metadata;
 
 import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +31,7 @@ public class MetaData {
     public static final String DATABASE_TYPE = "databaseType";
     public static final String GROUPSTREE = "grouping";
     public static final String GROUPSTREE_LEGACY = "groupstree";
-    public static final String FILE_DIRECTORY = FieldName.FILE + FilePreferences.DIR_SUFFIX;
+    public static final String FILE_DIRECTORY = FieldName.FILE + FileDirectoryPreferences.DIR_SUFFIX;
     public static final String PROTECTED_FLAG_META = "protectedFlag";
     public static final String SELECTOR_META_PREFIX = "selector_";
 
@@ -43,7 +42,6 @@ public class MetaData {
     private final EventBus eventBus = new EventBus();
     private final Map<String, String> citeKeyPatterns = new HashMap<>(); // <BibType, Pattern>
     private final Map<String, String> userFileDirectory = new HashMap<>(); // <User, FilePath>
-    private final Map<String, Path> laTexFileDirectory = new HashMap<>(); // <User, FilePath>
     private GroupTreeNode groupsRoot;
     private Charset encoding;
     private SaveOrderConfig saveOrderConfig;
@@ -52,8 +50,8 @@ public class MetaData {
     private BibDatabaseMode mode;
     private boolean isProtected;
     private String defaultFileDirectory;
-    private final ContentSelectors contentSelectors = new ContentSelectors();
-    private final Map<String, List<String>> unkownMetaData = new HashMap<>();
+    private ContentSelectors contentSelectors = new ContentSelectors();
+    private Map<String, List<String>> unkownMetaData = new HashMap<>();
     private boolean isEventPropagationEnabled = true;
 
     /**
@@ -211,20 +209,6 @@ public class MetaData {
         postChange();
     }
 
-    public Optional<Path> getLaTexFileDirectory(String user) {
-        return Optional.ofNullable(laTexFileDirectory.get(user));
-    }
-
-    public void setLaTexFileDirectory(String user, Path path) {
-        laTexFileDirectory.put(Objects.requireNonNull(user), Objects.requireNonNull(path));
-        postChange();
-    }
-
-    public void clearLaTexFileDirectory(String user) {
-        laTexFileDirectory.remove(user);
-        postChange();
-    }
-
     public void markAsNotProtected() {
         isProtected = false;
         postChange();
@@ -301,10 +285,6 @@ public class MetaData {
         return Collections.unmodifiableMap(userFileDirectory);
     }
 
-    public Map<String, Path> getLaTexFileDirectories() {
-        return Collections.unmodifiableMap(laTexFileDirectory);
-    }
-
     public Map<String, List<String>> getUnknownMetaData() {
         return Collections.unmodifiableMap(unkownMetaData);
     }
@@ -330,7 +310,6 @@ public class MetaData {
                 && Objects.equals(saveOrderConfig, metaData.saveOrderConfig)
                 && Objects.equals(citeKeyPatterns, metaData.citeKeyPatterns)
                 && Objects.equals(userFileDirectory, metaData.userFileDirectory)
-               && Objects.equals(laTexFileDirectory, metaData.laTexFileDirectory)
                 && Objects.equals(defaultCiteKeyPattern, metaData.defaultCiteKeyPattern)
                 && Objects.equals(saveActions, metaData.saveActions) && (mode == metaData.mode)
                 && Objects.equals(defaultFileDirectory, metaData.defaultFileDirectory)

@@ -3,7 +3,6 @@ package org.jabref.logic;
 import org.jabref.model.database.BibDatabaseMode;
 import org.jabref.model.entry.BibEntry;
 import org.jabref.model.entry.BibtexEntryTypes;
-import org.jabref.model.entry.CustomEntryType;
 
 import org.junit.jupiter.api.Test;
 
@@ -15,7 +14,7 @@ public class TypedBibEntryTest {
 
     @Test
     public void hasAllRequiredFieldsFail() {
-        BibEntry e = new BibEntry(BibtexEntryTypes.ARTICLE);
+        BibEntry e = new BibEntry(BibtexEntryTypes.ARTICLE.getName());
         e.setField("author", "abc");
         e.setField("title", "abc");
         e.setField("journal", "abc");
@@ -26,7 +25,7 @@ public class TypedBibEntryTest {
 
     @Test
     public void hasAllRequiredFields() {
-        BibEntry e = new BibEntry(BibtexEntryTypes.ARTICLE);
+        BibEntry e = new BibEntry(BibtexEntryTypes.ARTICLE.getName());
         e.setField("author", "abc");
         e.setField("title", "abc");
         e.setField("journal", "abc");
@@ -38,7 +37,7 @@ public class TypedBibEntryTest {
 
     @Test
     public void hasAllRequiredFieldsForUnknownTypeReturnsTrue() {
-        BibEntry e = new BibEntry(new CustomEntryType("articlllleeeee", "required", "optional"));
+        BibEntry e = new BibEntry("articlllleeeee");
 
         TypedBibEntry typedEntry = new TypedBibEntry(e, BibDatabaseMode.BIBTEX);
         assertTrue(typedEntry.hasAllRequiredFields());
@@ -46,7 +45,7 @@ public class TypedBibEntryTest {
 
     @Test
     public void getTypeForDisplayReturnsTypeName() {
-        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS);
+        BibEntry e = new BibEntry(BibtexEntryTypes.INPROCEEDINGS.getName());
 
         TypedBibEntry typedEntry = new TypedBibEntry(e, BibDatabaseMode.BIBTEX);
         assertEquals("InProceedings", typedEntry.getTypeForDisplay());
@@ -54,7 +53,7 @@ public class TypedBibEntryTest {
 
     @Test
     public void getTypeForDisplayForUnknownTypeCapitalizeFirstLetter() {
-        BibEntry e = new BibEntry(new CustomEntryType("articlllleeeee", "required", "optional"));
+        BibEntry e = new BibEntry("articlllleeeee");
 
         TypedBibEntry typedEntry = new TypedBibEntry(e, BibDatabaseMode.BIBTEX);
         assertEquals("Articlllleeeee", typedEntry.getTypeForDisplay());

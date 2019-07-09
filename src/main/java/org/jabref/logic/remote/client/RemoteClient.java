@@ -1,7 +1,6 @@
 package org.jabref.logic.remote.client;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 
 import javafx.util.Pair;
@@ -18,8 +17,8 @@ public class RemoteClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RemoteClient.class);
 
-    private static final int TIMEOUT = 200;
-    private final int port;
+    private static final int TIMEOUT = 2000;
+    private int port;
 
     public RemoteClient(int port) {
         this.port = port;
@@ -62,9 +61,8 @@ public class RemoteClient {
     }
 
     private Protocol openNewConnection() throws IOException {
-        Socket socket = new Socket();
+        Socket socket = new Socket(RemotePreferences.getIpAddress(), port);
         socket.setSoTimeout(TIMEOUT);
-        socket.connect(new InetSocketAddress(RemotePreferences.getIpAddress(), port), TIMEOUT);
         return new Protocol(socket);
     }
 }

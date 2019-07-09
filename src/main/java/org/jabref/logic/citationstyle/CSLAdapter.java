@@ -9,8 +9,6 @@ import java.util.Objects;
 import org.jabref.logic.formatter.bibtexfields.RemoveNewlinesFormatter;
 import org.jabref.logic.layout.format.HTMLChars;
 import org.jabref.model.entry.BibEntry;
-import org.jabref.model.entry.FieldName;
-import org.jabref.model.entry.Month;
 
 import de.undercouch.citeproc.CSL;
 import de.undercouch.citeproc.ItemDataProvider;
@@ -31,9 +29,9 @@ import org.jbibtex.Key;
  * same style. Changing the output format is cheap.
  * @implNote The main function {@link #makeBibliography} will enforce
  * synchronized calling. The main CSL engine under the hood is not thread-safe. Since this class is usually called from
- * a BackgroundTakk, the only other option would be to create several CSL instances which is wasting a lot of resources and very slow.
+ * a SwingWorker, the only other option would be to create several CSL instances which is wasting a lot of resources and very slow.
  * In the current scheme, {@link #makeBibliography} can be called as usual
- * background task and to the best of my knowledge, concurrent calls will pile up and processed sequentially.
+ * SwingWorker task and to the best of my knowledge, concurrent calls will pile up and processed sequentially.
  */
 public class CSLAdapter {
 
@@ -63,9 +61,8 @@ public class CSLAdapter {
      * @throws IOException An error occurred in the underlying JavaScript framework
      */
     private void initialize(String newStyle, CitationStyleOutputFormat newFormat) throws IOException {
-        if ((cslInstance == null) || !Objects.equals(newStyle, style)) {
-            // lang and forceLang are set to the default values of other CSL constructors
-            cslInstance = new CSL(dataProvider, new JabRefLocaleProvider(), newStyle, "en-US", false);
+        if (cslInstance == null || !Objects.equals(newStyle, style)) {
+            cslInstance = new CSL(dataProvider, newStyle);
             style = newStyle;
         }
 
@@ -81,7 +78,7 @@ public class CSLAdapter {
      */
     private static class JabRefItemDataProvider implements ItemDataProvider {
 
-        private final ArrayList<BibEntry> data = new ArrayList<>();
+        private ArrayList<BibEntry> data = new ArrayList<>();
 
         /**
          * Converts the {@link BibEntry} into {@link CSLItemData}.
@@ -97,13 +94,7 @@ public class CSLAdapter {
                 bibEntry.getField(key)
                         .map(removeNewlinesFormatter::format)
                         .map(latexToHtmlConverter::format)
-                        .ifPresent(value -> {
-                            if (FieldName.MONTH.equals(key)) {
-                                // Change month from #mon# to mon because CSL does not support the former format
-                                value = bibEntry.getMonth().map(Month::getShortName).orElse(value);
-                            }
-                            bibTeXEntry.addField(new Key(key), new DigitStringValue(value));
-                        });
+                        .ifPresent(value -> bibTeXEntry.addField(new Key(key), new DigitStringValue(value)));
             }
             return BIBTEX_CONVERTER.toItemData(bibTeXEntry);
         }

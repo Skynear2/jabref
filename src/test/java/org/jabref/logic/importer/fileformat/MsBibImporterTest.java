@@ -69,4 +69,5 @@ public class MsBibImporterTest {
         MsBibImporter testImporter = new MsBibImporter();
         assertEquals("msbib", testImporter.getId());
     }
+
 }

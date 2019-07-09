@@ -99,6 +99,7 @@ public enum SpecialField {
         }
     }
 
+
     /**
      * @param fieldName the name of the field to check
      * @return true if given field is a special field, false otherwise

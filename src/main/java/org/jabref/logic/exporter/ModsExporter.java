@@ -48,12 +48,13 @@ import org.jabref.model.database.BibDatabaseContext;
 import org.jabref.model.entry.BibEntry;
 import org.jabref.model.entry.FieldName;
 
+
 /**
  * TemplateExporter for exporting in MODS XML format.
  */
 class ModsExporter extends Exporter {
 
-    private static final String MODS_NAMESPACE_URI = "http://www.loc.gov/mods/v3";
+    protected static final String MODS_NAMESPACE_URI = "http://www.loc.gov/mods/v3";
     private static final String MINUS = "-";
     private static final String DOUBLE_MINUS = "--";
     private static final String MODS_SCHEMA_LOCATION = "http://www.loc.gov/standards/mods/v3/mods-3-6.xsd";
@@ -319,7 +320,7 @@ class ModsExporter extends Exporter {
                 name.getNamePartOrDisplayFormOrAffiliation().add(element);
 
                 //now take care of the forenames
-                String forename = author.substring(commaIndex + 1);
+                String forename = author.substring(commaIndex + 1, author.length());
                 String[] forenames = forename.split(" ");
                 for (String given : forenames) {
                     if (!given.isEmpty()) {

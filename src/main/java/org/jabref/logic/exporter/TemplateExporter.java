@@ -41,10 +41,6 @@ public class TemplateExporter extends Exporter {
      * \\s simply marks any whitespace character
      */
     private static final Pattern BLANK_LINE_MATCHER = Pattern.compile("(?m)^\\s");
-    private static final String LAYOUT_EXTENSION = ".layout";
-    private static final String FORMATTERS_EXTENSION = ".formatters";
-    private static final String BEGIN_INFIX = ".begin";
-    private static final String END_INFIX = ".end";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TemplateExporter.class);
 
@@ -74,22 +70,6 @@ public class TemplateExporter extends Exporter {
      * Initialize another export format based on templates stored in dir with
      * layoutFile lfFilename.
      *
-     * @param name              to display to the user and to call this format in the console.
-     * @param lfFileName        Name of the main layout file.
-     * @param directory         Directory in which to find the layout file.
-     * @param extension         May or may not contain the . (for instance .txt).
-     * @param layoutPreferences Preferences for the layout
-     * @param savePreferences   Preferences for saving
-     */
-    public TemplateExporter(String name, String lfFileName, String extension, LayoutFormatterPreferences layoutPreferences,
-                            SavePreferences savePreferences) {
-        this(name, name, lfFileName, null, StandardFileType.newFileType(extension), layoutPreferences, savePreferences);
-    }
-
-    /**
-     * Initialize another export format based on templates stored in dir with
-     * layoutFile lfFilename.
-     *
      * @param displayName Name to display to the user.
      * @param consoleName Name to call this format in the console.
      * @param lfFileName  Name of the main layout file.
@@ -101,11 +81,7 @@ public class TemplateExporter extends Exporter {
     public TemplateExporter(String displayName, String consoleName, String lfFileName, String directory, FileType extension,
             LayoutFormatterPreferences layoutPreferences, SavePreferences savePreferences) {
         super(consoleName, displayName, extension);
-        if (Objects.requireNonNull(lfFileName).endsWith(LAYOUT_EXTENSION)) {
-            this.lfFileName = lfFileName.substring(0, lfFileName.length() - LAYOUT_EXTENSION.length());
-        } else {
-            this.lfFileName = lfFileName;
-        }
+        this.lfFileName = Objects.requireNonNull(lfFileName);
         this.directory = directory;
         this.layoutPreferences = layoutPreferences;
         this.savePreferences = savePreferences;
@@ -204,8 +180,22 @@ public class TemplateExporter extends Exporter {
         if (entries.isEmpty()) { // Do not export if no entries to export -- avoids exports with only template text
             return;
         }
+        SaveSession saveSession = null;
+        if (this.encoding != null) {
+            try {
+                saveSession = new FileSaveSession(this.encoding, false);
+            } catch (SaveException ex) {
+                // Perhaps the overriding encoding doesn't work?
+                // We will fall back on the default encoding.
+                LOGGER.warn("Cannot get save session.", ex);
+            }
+        }
+        if (saveSession == null) {
+            saveSession = new FileSaveSession(encoding, false);
+        }
 
-        try (AtomicFileWriter ps = new AtomicFileWriter(file, encoding)) {
+        try (VerifyingWriter ps = saveSession.getWriter()) {
+
             Layout beginLayout = null;
 
             // Check if this export filter has bundled name formatters:
@@ -215,7 +205,7 @@ public class TemplateExporter extends Exporter {
             List<String> missingFormatters = new ArrayList<>(1);
 
             // Print header
-            try (Reader reader = getReader(lfFileName + BEGIN_INFIX + LAYOUT_EXTENSION)) {
+            try (Reader reader = getReader(lfFileName + ".begin.layout")) {
                 LayoutHelper layoutHelper = new LayoutHelper(reader, layoutPreferences);
                 beginLayout = layoutHelper.getLayoutFromText();
             } catch (IOException ex) {
@@ -240,7 +230,7 @@ public class TemplateExporter extends Exporter {
             // Load default layout
             Layout defLayout;
             LayoutHelper layoutHelper;
-            try (Reader reader = getReader(lfFileName + LAYOUT_EXTENSION)) {
+            try (Reader reader = getReader(lfFileName + ".layout")) {
                 layoutHelper = new LayoutHelper(reader, layoutPreferences);
                 defLayout = layoutHelper.getLayoutFromText();
             }
@@ -261,7 +251,7 @@ public class TemplateExporter extends Exporter {
                 if (layouts.containsKey(type)) {
                     layout = layouts.get(type);
                 } else {
-                    try (Reader reader = getReader(lfFileName + '.' + type + LAYOUT_EXTENSION)) {
+                    try (Reader reader = getReader(lfFileName + '.' + type + ".layout")) {
                         // We try to get a type-specific layout for this entry.
                         layoutHelper = new LayoutHelper(reader, layoutPreferences);
                         layout = layoutHelper.getLayoutFromText();
@@ -293,7 +283,7 @@ public class TemplateExporter extends Exporter {
 
             // changed section - begin (arudert)
             Layout endLayout = null;
-            try (Reader reader = getReader(lfFileName + END_INFIX + LAYOUT_EXTENSION)) {
+            try (Reader reader = getReader(lfFileName + ".end.layout")) {
                 layoutHelper = new LayoutHelper(reader, layoutPreferences);
                 endLayout = layoutHelper.getLayoutFromText();
             } catch (IOException ex) {
@@ -315,7 +305,9 @@ public class TemplateExporter extends Exporter {
                 sb.append(String.join(", ", missingFormatters));
                 LOGGER.warn("Formatters not found", sb);
             }
+            saveSession.finalize(file);
         }
+
     }
 
     /**
@@ -324,7 +316,7 @@ public class TemplateExporter extends Exporter {
      *
      */
     private void readFormatterFile() {
-        File formatterFile = new File(lfFileName + FORMATTERS_EXTENSION);
+        File formatterFile = new File(lfFileName + ".formatters");
         if (formatterFile.exists()) {
             try (Reader in = new FileReader(formatterFile)) {
                 // Ok, we found and opened the file. Read all contents:
@@ -348,18 +340,11 @@ public class TemplateExporter extends Exporter {
                         layoutPreferences.putCustomExportNameFormatter(formatterName, contents);
                     }
                 }
+
             } catch (IOException ex) {
                 // TODO: show error message here?
                 LOGGER.warn("Problem opening formatter file.", ex);
             }
         }
-    }
-
-    public String getLayoutFileName() {
-        return lfFileName;
-    }
-
-    public String getLayoutFileNameWithExtension() {
-        return lfFileName + LAYOUT_EXTENSION;
     }
 }

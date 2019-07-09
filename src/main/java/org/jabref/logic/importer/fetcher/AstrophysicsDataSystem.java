@@ -9,7 +9,6 @@ import java.net.URLConnection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.jabref.logic.cleanup.MoveFieldCleanup;
 import org.jabref.logic.formatter.bibtexfields.ClearFormatter;
@@ -30,10 +29,10 @@ import org.jabref.logic.net.URLDownload;
 import org.jabref.model.cleanup.FieldFormatterCleanup;
 import org.jabref.model.entry.BibEntry;
 import org.jabref.model.entry.FieldName;
-import org.jabref.model.strings.StringUtil;
 import org.jabref.model.util.DummyFileUpdateMonitor;
 
 import org.apache.http.client.utils.URIBuilder;
+import org.jsoup.helper.StringUtil;
 
 /**
  * Fetches data from the SAO/NASA Astrophysics Data System (http://www.adsabs.harvard.edu/)
@@ -116,8 +115,8 @@ public class AstrophysicsDataSystem implements IdBasedParserFetcher, SearchBased
     }
 
     @Override
-    public Optional<HelpFile> getHelpPage() {
-        return Optional.of(HelpFile.FETCHER_ADS);
+    public HelpFile getHelpPage() {
+        return HelpFile.FETCHER_ADS;
     }
 
     @Override

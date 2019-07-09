@@ -3,7 +3,6 @@ package org.jabref.logic.util.io;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.CopyOption;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,6 +26,7 @@ import org.jabref.model.database.BibDatabase;
 import org.jabref.model.entry.BibEntry;
 import org.jabref.model.util.OptionalUtil;
 
+import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +42,7 @@ public class FileUtil {
     /**
      * Returns the extension of a file name or Optional.empty() if the file does not have one (no "." in name).
      *
-     * @return the extension (without leading dot), trimmed and in lowercase.
+     * @return The extension (without leading dot), trimmed and in lowercase.
      */
     public static Optional<String> getFileExtension(String fileName) {
         int dotPosition = fileName.lastIndexOf('.');
@@ -56,17 +56,17 @@ public class FileUtil {
     /**
      * Returns the extension of a file or Optional.empty() if the file does not have one (no . in name).
      *
-     * @return the extension (without leading dot), trimmed and in lowercase.
+     * @return The extension, trimmed and in lowercase.
      */
-    public static Optional<String> getFileExtension(Path file) {
-        return getFileExtension(file.getFileName().toString());
+    public static Optional<String> getFileExtension(File file) {
+        return getFileExtension(file.getName());
     }
 
     /**
      * Returns the name part of a file name (i.e., everything in front of last ".").
      */
     public static String getBaseName(String fileNameWithExtension) {
-        return com.google.common.io.Files.getNameWithoutExtension(fileNameWithExtension);
+        return FilenameUtils.getBaseName(fileNameWithExtension);
     }
 
     /**
@@ -96,7 +96,8 @@ public class FileUtil {
      * @return the with the modified file name
      */
     public static Path addExtension(Path path, String extension) {
-        return path.resolveSibling(path.getFileName() + extension);
+        Path fileName = path.getFileName();
+        return path.resolveSibling(fileName + extension);
     }
 
     /**
@@ -155,7 +156,7 @@ public class FileUtil {
             return false;
         }
         if (Files.exists(pathToDestinationFile) && !replaceExisting) {
-            LOGGER.error("Path to the destination file exists but the file shouldn't be replaced.");
+            LOGGER.error("Path to the destination file is not exists and the file shouldn't be replace.");
             return false;
         }
         try {
@@ -187,9 +188,7 @@ public class FileUtil {
      * @param toFile          The target fileName
      * @param replaceExisting Wether to replace existing files or not
      * @return True if the rename was successful, false if an exception occurred
-     * @deprecated Use {@link Files#move(Path, Path, CopyOption...)} instead and handle exception properly
      */
-    @Deprecated
     public static boolean renameFile(Path fromFile, Path toFile, boolean replaceExisting) {
         try {
             return renameFileWithException(fromFile, toFile, replaceExisting);
@@ -199,10 +198,6 @@ public class FileUtil {
         }
     }
 
-    /**
-     * @deprecated Directly use {@link Files#move(Path, Path, CopyOption...)}
-     */
-    @Deprecated
     public static boolean renameFileWithException(Path fromFile, Path toFile, boolean replaceExisting) throws IOException {
         if (replaceExisting) {
             return Files.move(fromFile, fromFile.resolveSibling(toFile),
@@ -216,19 +211,19 @@ public class FileUtil {
      * Converts an absolute file to a relative one, if possible. Returns the parameter file itself if no shortening is
      * possible.
      * <p>
-     * This method works correctly only if directories are sorted decent in their length i.e. /home/user/literature/important before /home/user/literature.
+     * This method works correctly only if dirs are sorted decent in their length i.e. /home/user/literature/important before /home/user/literature.
      *
      * @param file the file to be shortened
-     * @param directories directories to check
+     * @param dirs directories to check
      */
-    public static Path relativize(Path file, List<Path> directories) {
+    public static Path shortenFileName(Path file, List<Path> dirs) {
         if (!file.isAbsolute()) {
             return file;
         }
 
-        for (Path directory : directories) {
-            if (file.startsWith(directory)) {
-                return directory.relativize(file);
+        for (Path dir : dirs) {
+            if (file.startsWith(dir)) {
+                return dir.relativize(file);
             }
         }
         return file;
@@ -332,15 +327,5 @@ public class FileUtil {
     public static String toPortableString(Path path) {
         return path.toString()
                    .replace('\\', '/');
-    }
-
-    /**
-     * Test if the file is a bib file by simply checking the extension to be ".bib"
-     * @param file The file to check
-     * @return True if file extension is ".bib", false otherwise
-     */
-    public static boolean isBibFile(Path file)
-    {
-        return getFileExtension(file).filter(type -> "bib".equals(type)).isPresent();
     }
 }

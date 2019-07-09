@@ -1,8 +1,7 @@
 package org.jabref.logic.integrity;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -19,22 +18,26 @@ import org.jabref.model.database.BibDatabaseContext;
 import org.jabref.model.database.BibDatabaseMode;
 import org.jabref.model.entry.BibEntry;
 import org.jabref.model.entry.InternalBibtexFields;
-import org.jabref.model.metadata.FilePreferences;
+import org.jabref.model.metadata.FileDirectoryPreferences;
 import org.jabref.model.metadata.MetaData;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 
-class IntegrityCheckTest {
+public class IntegrityCheckTest {
+
+    @Rule
+    public TemporaryFolder testFolder = new TemporaryFolder();
 
     @Test
-    void testEntryTypeChecks() {
+    public void testEntryTypeChecks() {
         assertCorrect(withMode(createContext("title", "sometitle", "article"), BibDatabaseMode.BIBTEX));
         assertWrong(withMode(createContext("title", "sometitle", "patent"), BibDatabaseMode.BIBTEX));
         assertCorrect((withMode(createContext("title", "sometitle", "patent"), BibDatabaseMode.BIBLATEX)));
@@ -42,7 +45,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testUrlChecks() {
+    public void testUrlChecks() {
         assertCorrect(createContext("url", "http://www.google.com"));
         assertCorrect(createContext("url", "file://c:/asdf/asdf"));
         assertCorrect(createContext("url", "http://scikit-learn.org/stable/modules/ensemble.html#random-forests"));
@@ -53,7 +56,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testYearChecks() {
+    public void testYearChecks() {
         assertCorrect(createContext("year", "2014"));
         assertCorrect(createContext("year", "1986"));
         assertCorrect(createContext("year", "around 1986"));
@@ -72,7 +75,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testEditionChecks() {
+    public void testEditionChecks() {
         assertCorrect(withMode(createContext("edition", "Second"), BibDatabaseMode.BIBTEX));
         assertCorrect(withMode(createContext("edition", "Third"), BibDatabaseMode.BIBTEX));
         assertWrong(withMode(createContext("edition", "second"), BibDatabaseMode.BIBTEX));
@@ -84,11 +87,10 @@ class IntegrityCheckTest {
                 withMode(createContext("edition", "Third, revised and expanded edition"), BibDatabaseMode.BIBLATEX));
         assertCorrect(withMode(createContext("edition", "Edition 2000"), BibDatabaseMode.BIBLATEX));
         assertWrong(withMode(createContext("edition", "2nd"), BibDatabaseMode.BIBLATEX));
-        assertWrong(createContext("edition", "1"));
     }
 
     @Test
-    void testNoteChecks() {
+    public void testNoteChecks() {
         assertCorrect(withMode(createContext("note", "Lorem ipsum"), BibDatabaseMode.BIBTEX));
         assertCorrect(withMode(createContext("note", "Lorem ipsum? 10"), BibDatabaseMode.BIBTEX));
         assertWrong(withMode(createContext("note", "lorem ipsum"), BibDatabaseMode.BIBTEX));
@@ -98,7 +100,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testHowpublishedChecks() {
+    public void testHowpublishedChecks() {
         assertCorrect(withMode(createContext("howpublished", "Lorem ipsum"), BibDatabaseMode.BIBTEX));
         assertCorrect(withMode(createContext("howpublished", "Lorem ipsum? 10"), BibDatabaseMode.BIBTEX));
         assertWrong(withMode(createContext("howpublished", "lorem ipsum"), BibDatabaseMode.BIBTEX));
@@ -108,7 +110,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testMonthChecks() {
+    public void testMonthChecks() {
         assertCorrect(withMode(createContext("month", "#mar#"), BibDatabaseMode.BIBTEX));
         assertCorrect(withMode(createContext("month", "#dec#"), BibDatabaseMode.BIBTEX));
         assertWrong(withMode(createContext("month", "#bla#"), BibDatabaseMode.BIBTEX));
@@ -126,26 +128,26 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testJournaltitleChecks() {
+    public void testJournaltitleChecks() {
         assertWrong(withMode(createContext("journaltitle", "A journal"), BibDatabaseMode.BIBLATEX));
         assertWrong(withMode(createContext("journaltitle", "A journal"), BibDatabaseMode.BIBTEX));
     }
 
     @Test
-    void testBibtexkeyChecks() {
+    public void testBibtexkeyChecks() {
         final BibDatabaseContext correctContext = createContext("bibtexkey", "Knuth2014");
-        correctContext.getDatabase().getEntries().get(0).setField("author", "Knuth");
-        correctContext.getDatabase().getEntries().get(0).setField("year", "2014");
+        correctContext.getDatabase().getEntries().get(0).setField("author","Knuth");
+        correctContext.getDatabase().getEntries().get(0).setField("year","2014");
         assertCorrect(correctContext);
 
         final BibDatabaseContext wrongContext = createContext("bibtexkey", "Knuth2014a");
-        wrongContext.getDatabase().getEntries().get(0).setField("author", "Knuth");
-        wrongContext.getDatabase().getEntries().get(0).setField("year", "2014");
+        wrongContext.getDatabase().getEntries().get(0).setField("author","Knuth");
+        wrongContext.getDatabase().getEntries().get(0).setField("year","2014");
         assertWrong(wrongContext);
     }
 
     @Test
-    void testBracketChecks() {
+    public void testBracketChecks() {
         assertCorrect(createContext("title", "x"));
         assertCorrect(createContext("title", "{x}"));
         assertCorrect(createContext("title", "{x}x{}x{{}}"));
@@ -155,7 +157,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testAuthorNameChecks() {
+    public void testAuthorNameChecks() {
         for (String field : InternalBibtexFields.getPersonNameFields()) {
             // getPersonNameFields returns fields that are available in biblatex only
             // if run without mode, the NoBibtexFieldChecker will complain that "afterword" is a biblatex only field
@@ -172,7 +174,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testTitleChecks() {
+    public void testTitleChecks() {
         assertCorrect(withMode(createContext("title", "This is a title"), BibDatabaseMode.BIBTEX));
         assertWrong(withMode(createContext("title", "This is a Title"), BibDatabaseMode.BIBTEX));
         assertCorrect(withMode(createContext("title", "This is a {T}itle"), BibDatabaseMode.BIBTEX));
@@ -191,7 +193,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testAbbreviationChecks() {
+    public void testAbbreviationChecks() {
         for (String field : Arrays.asList("booktitle", "journal")) {
             assertCorrect(createContext(field, "IEEE Software"));
             assertCorrect(createContext(field, ""));
@@ -200,13 +202,13 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testJournalIsKnownInAbbreviationList() {
+    public void testJournalIsKnownInAbbreviationList() {
         assertCorrect(createContext("journal", "IEEE Software"));
         assertWrong(createContext("journal", "IEEE Whocares"));
     }
 
     @Test
-    void testFileChecks() {
+    public void testFileChecks() {
         MetaData metaData = mock(MetaData.class);
         Mockito.when(metaData.getDefaultFileDirectory()).thenReturn(Optional.of("."));
         Mockito.when(metaData.getUserFileDirectory(any(String.class))).thenReturn(Optional.empty());
@@ -219,11 +221,9 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void fileCheckFindsFilesRelativeToBibFile(@TempDir Path testFolder) throws IOException {
-        Path bibFile = testFolder.resolve("lit.bib");
-        Files.createFile(bibFile);
-        Path pdfFile = testFolder.resolve("file.pdf");
-        Files.createFile(pdfFile);
+    public void fileCheckFindsFilesRelativeToBibFile() throws IOException {
+        File bibFile = testFolder.newFile("lit.bib");
+        testFolder.newFile("file.pdf");
 
         BibDatabaseContext databaseContext = createContext("file", ":file.pdf:PDF");
         databaseContext.setDatabaseFile(bibFile);
@@ -232,19 +232,19 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testTypeChecks() {
+    public void testTypeChecks() {
         assertCorrect(createContext("pages", "11--15", "inproceedings"));
         assertWrong(createContext("pages", "11--15", "proceedings"));
     }
 
     @Test
-    void testBooktitleChecks() {
+    public void testBooktitleChecks() {
         assertCorrect(createContext("booktitle", "2014 Fourth International Conference on Digital Information and Communication Technology and it's Applications (DICTAP)", "proceedings"));
         assertWrong(createContext("booktitle", "Digital Information and Communication Technology and it's Applications (DICTAP), 2014 Fourth International Conference on", "proceedings"));
     }
 
     @Test
-    void testPageNumbersChecks() {
+    public void testPageNumbersChecks() {
         assertCorrect(createContext("pages", "1--2"));
         assertCorrect(createContext("pages", "12"));
         assertWrong(createContext("pages", "1-2"));
@@ -259,7 +259,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testBiblatexPageNumbersChecks() {
+    public void testBiblatexPageNumbersChecks() {
         assertCorrect(withMode(createContext("pages", "1--2"), BibDatabaseMode.BIBLATEX));
         assertCorrect(withMode(createContext("pages", "12"), BibDatabaseMode.BIBLATEX));
         assertCorrect(withMode(createContext("pages", "1-2"), BibDatabaseMode.BIBLATEX)); // only diff to bibtex
@@ -274,7 +274,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testBibStringChecks() {
+    public void testBibStringChecks() {
         assertCorrect(createContext("title", "Not a single hash mark"));
         assertCorrect(createContext("month", "#jan#"));
         assertCorrect(createContext("author", "#einstein# and #newton#"));
@@ -283,7 +283,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testHTMLCharacterChecks() {
+    public void testHTMLCharacterChecks() {
         assertCorrect(createContext("title", "Not a single {HTML} character"));
         assertCorrect(createContext("month", "#jan#"));
         assertCorrect(createContext("author", "A. Einstein and I. Newton"));
@@ -294,7 +294,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testISSNChecks() {
+    public void testISSNChecks() {
         assertCorrect(createContext("issn", "0020-7217"));
         assertCorrect(createContext("issn", "1687-6180"));
         assertCorrect(createContext("issn", "2434-561x"));
@@ -303,7 +303,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testISBNChecks() {
+    public void testISBNChecks() {
         assertCorrect(createContext("isbn", "0-201-53082-1"));
         assertCorrect(createContext("isbn", "0-9752298-0-X"));
         assertCorrect(createContext("isbn", "978-0-306-40615-7"));
@@ -313,7 +313,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testDOIChecks() {
+    public void testDOIChecks() {
         assertCorrect(createContext("doi", "10.1023/A:1022883727209"));
         assertCorrect(createContext("doi", "10.17487/rfc1436"));
         assertCorrect(createContext("doi", "10.1002/(SICI)1097-4571(199205)43:4<284::AID-ASI3>3.0.CO;2-0"));
@@ -321,7 +321,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testEntryIsUnchangedAfterChecks() {
+    public void testEntryIsUnchangedAfterChecks() {
         BibEntry entry = new BibEntry();
 
         // populate with all known fields
@@ -339,7 +339,7 @@ class IntegrityCheckTest {
         BibDatabaseContext context = new BibDatabaseContext(bibDatabase, new Defaults());
 
         new IntegrityCheck(context,
-                mock(FilePreferences.class),
+                mock(FileDirectoryPreferences.class),
                 createBibtexKeyPatternPreferences(),
                 new JournalAbbreviationRepository(new Abbreviation("IEEE Software", "IEEE SW")), true)
                 .checkBibtexDatabase();
@@ -348,7 +348,7 @@ class IntegrityCheckTest {
     }
 
     @Test
-    void testASCIIChecks() {
+    public void testASCIIChecks() {
         assertCorrect(createContext("title", "Only ascii characters!'@12"));
         assertWrong(createContext("month", "Umlauts are nöt ällowed"));
         assertWrong(createContext("author", "Some unicode ⊕"));
@@ -377,16 +377,16 @@ class IntegrityCheckTest {
 
     private void assertWrong(BibDatabaseContext context) {
         List<IntegrityMessage> messages = new IntegrityCheck(context,
-                mock(FilePreferences.class),
+                mock(FileDirectoryPreferences.class),
                 createBibtexKeyPatternPreferences(),
                 new JournalAbbreviationRepository(new Abbreviation("IEEE Software", "IEEE SW")), true)
                 .checkBibtexDatabase();
-        assertFalse(messages.isEmpty(), messages.toString());
+        assertFalse(messages.toString(), messages.isEmpty());
     }
 
     private void assertCorrect(BibDatabaseContext context) {
         List<IntegrityMessage> messages = new IntegrityCheck(context,
-                mock(FilePreferences.class),
+                mock(FileDirectoryPreferences.class),
                 createBibtexKeyPatternPreferences(),
                 new JournalAbbreviationRepository(new Abbreviation("IEEE Software", "IEEE SW")), true
         ).checkBibtexDatabase();
@@ -409,4 +409,5 @@ class IntegrityCheckTest {
         context.setMode(mode);
         return context;
     }
+
 }

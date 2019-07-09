@@ -15,7 +15,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
-import javafx.beans.Observable;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.property.SimpleStringProperty;
@@ -45,7 +44,7 @@ public class BibEntry implements Cloneable {
     public static final String OBSOLETE_TYPE_HEADER = "bibtextype";
     public static final String KEY_FIELD = "bibtexkey";
     public static final String DEFAULT_TYPE = "misc";
-    protected static final String INTERNAL_ID_FIELD = "JabRef-internal-id";
+    protected static final String ID_FIELD = "id";
     private static final Logger LOGGER = LoggerFactory.getLogger(BibEntry.class);
     private static final Pattern REMOVE_TRAILING_WHITESPACE = Pattern.compile("\\s+$");
     private final SharedBibEntryData sharedBibEntryData;
@@ -59,10 +58,12 @@ public class BibEntry implements Cloneable {
     private final Map<String, String> latexFreeFields = new ConcurrentHashMap<>();
     private final EventBus eventBus = new EventBus();
     private String id;
-    private final StringProperty type = new SimpleStringProperty();
-
+    private StringProperty type = new SimpleStringProperty();
     private ObservableMap<String, String> fields = FXCollections.observableMap(new ConcurrentHashMap<>());
-    private String parsedSerialization = "";
+    // Search and grouping status is stored in boolean fields for quick reference:
+    private boolean searchHit;
+    private boolean groupHit;
+    private String parsedSerialization;
     private String commentsBeforeEntry = "";
     /**
      * Marks whether the complete serialization, which was read from file, should be used.
@@ -74,9 +75,18 @@ public class BibEntry implements Cloneable {
     /**
      * Constructs a new BibEntry. The internal ID is set to IdGenerator.next()
      */
+
     public BibEntry() {
         this(IdGenerator.next(), DEFAULT_TYPE);
+    }
 
+    /**
+     * Constructs a new BibEntry with the given type
+     *
+     * @param type The type to set. May be null or empty. In that case, DEFAULT_TYPE is used.
+     */
+    public BibEntry(String type) {
+        this(IdGenerator.next(), type);
     }
 
     /**
@@ -91,13 +101,6 @@ public class BibEntry implements Cloneable {
         this.id = id;
         setType(type);
         this.sharedBibEntryData = new SharedBibEntryData();
-    }
-
-    /**
-     * Constructs a new BibEntry. The internal ID is set to IdGenerator.next()
-     */
-    public BibEntry(EntryType type) {
-        this(IdGenerator.next(), type.getName());
     }
 
     public Optional<FieldChange> setMonth(Month parsedMonth) {
@@ -161,7 +164,7 @@ public class BibEntry implements Cloneable {
 
         String oldId = this.id;
 
-        eventBus.post(new FieldChangedEvent(this, BibEntry.INTERNAL_ID_FIELD, id, oldId));
+        eventBus.post(new FieldChangedEvent(this, BibEntry.ID_FIELD, id, oldId));
         this.id = id;
         changed = true;
     }
@@ -323,9 +326,8 @@ public class BibEntry implements Cloneable {
                     return parsedDate.get().getDay().map(Object::toString);
                 }
             } else {
-                // Date field not in valid format
-                LOGGER.debug("Could not parse date " + date.get());
-                return Optional.empty();
+                LOGGER.warn("Could not parse date " + date.get());
+                return Optional.empty(); // Date field not in valid format
             }
         }
         return Optional.empty();
@@ -408,6 +410,10 @@ public class BibEntry implements Cloneable {
             return Optional.empty();
         }
 
+        if (BibEntry.ID_FIELD.equals(fieldName)) {
+            throw new IllegalArgumentException("The field name '" + name + "' is reserved");
+        }
+
         changed = true;
 
         fields.put(fieldName, value.intern());
@@ -458,6 +464,10 @@ public class BibEntry implements Cloneable {
      */
     public Optional<FieldChange> clearField(String name, EntryEventSource eventSource) {
         String fieldName = toLowerCase(name);
+
+        if (BibEntry.ID_FIELD.equals(fieldName)) {
+            throw new IllegalArgumentException("The field name '" + name + "' is reserved");
+        }
 
         Optional<String> oldValue = getField(fieldName);
         if (!oldValue.isPresent()) {
@@ -522,7 +532,7 @@ public class BibEntry implements Cloneable {
      */
     @Override
     public Object clone() {
-        BibEntry clone = new BibEntry(IdGenerator.next(), type.getValue());
+        BibEntry clone = new BibEntry(type.getValue());
         clone.fields = FXCollections.observableMap(new ConcurrentHashMap<>(fields));
         return clone;
     }
@@ -538,6 +548,22 @@ public class BibEntry implements Cloneable {
         return CanonicalBibtexEntry.getCanonicalRepresentation(this);
     }
 
+    public boolean isSearchHit() {
+        return searchHit;
+    }
+
+    public void setSearchHit(boolean searchHit) {
+        this.searchHit = searchHit;
+    }
+
+    public boolean isGroupHit() {
+        return groupHit;
+    }
+
+    public void setGroupHit(boolean groupHit) {
+        this.groupHit = groupHit;
+    }
+
     /**
      * @param maxCharacters The maximum number of characters (additional
      *                      characters are replaced with "..."). Set to 0 to disable truncation.
@@ -546,7 +572,7 @@ public class BibEntry implements Cloneable {
      */
     public String getAuthorTitleYear(int maxCharacters) {
         String[] s = new String[] {getField(FieldName.AUTHOR).orElse("N/A"), getField(FieldName.TITLE).orElse("N/A"),
-            getField(FieldName.YEAR).orElse("N/A")};
+                getField(FieldName.YEAR).orElse("N/A")};
 
         String text = s[0] + ": \"" + s[1] + "\" (" + s[2] + ')';
         if ((maxCharacters <= 0) || (text.length() <= maxCharacters)) {
@@ -666,7 +692,7 @@ public class BibEntry implements Cloneable {
     }
 
     public Optional<FieldChange> replaceKeywords(KeywordList keywordsToReplace, Keyword newValue,
-            Character keywordDelimiter) {
+                                                 Character keywordDelimiter) {
         KeywordList keywordList = getKeywords(keywordDelimiter);
         keywordList.replaceAll(keywordsToReplace, newValue);
 
@@ -765,7 +791,7 @@ public class BibEntry implements Cloneable {
     }
 
     public Optional<String> getLatexFreeField(String name) {
-        if (!hasField(name) && !TYPE_HEADER.equals(name)) {
+        if (!hasField(name)) {
             return Optional.empty();
         } else if (latexFreeFields.containsKey(name)) {
             return Optional.ofNullable(latexFreeFields.get(toLowerCase(name)));
@@ -774,15 +800,6 @@ public class BibEntry implements Cloneable {
             Optional<String> citeKey = getCiteKeyOptional();
             latexFreeFields.put(name, citeKey.get());
             return citeKey;
-        } else if (TYPE_HEADER.equals(name)) {
-            Optional<EntryType> entryType = EntryTypes.getType(getType(), BibDatabaseMode.BIBLATEX);
-            if (entryType.isPresent()) {
-                String entryName = entryType.get().getName();
-                latexFreeFields.put(name, entryName);
-                return Optional.of(entryName);
-            } else {
-                return Optional.of(StringUtil.capitalizeFirst(getType()));
-            }
         } else {
             String latexFreeField = LatexToUnicodeAdapter.format(getField(name).get()).intern();
             latexFreeFields.put(name, latexFreeField);
@@ -831,10 +848,6 @@ public class BibEntry implements Cloneable {
         return Bindings.valueAt(fields, fieldName);
     }
 
-    public ObjectBinding<String> getCiteKeyBinding() {
-        return getFieldBinding(KEY_FIELD);
-    }
-
     public Optional<FieldChange> addFile(LinkedFile file) {
         List<LinkedFile> linkedFiles = getFiles();
         linkedFiles.add(file);
@@ -845,15 +858,7 @@ public class BibEntry implements Cloneable {
         return fields;
     }
 
-    /**
-     * Returns a list of observables that represent the data of the entry.
-     */
-    public Observable[] getObservables() {
-        return new Observable[] {fields};
-    }
-
     private interface GetFieldInterface {
         Optional<String> getValueForField(String fieldName);
     }
-
 }

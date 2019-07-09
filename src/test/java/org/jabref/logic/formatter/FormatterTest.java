@@ -21,85 +21,84 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class FormatterTest {
+public class FormatterTest {
 
     private static ProtectedTermsLoader protectedTermsLoader;
 
     @BeforeAll
-    static void setUp() {
+    public static void setUp() {
         protectedTermsLoader = new ProtectedTermsLoader(
                 new ProtectedTermsPreferences(ProtectedTermsLoader.getInternalLists(), Collections.emptyList(),
                         Collections.emptyList(), Collections.emptyList()));
     }
 
     /**
-     * When a new formatter is added by copy and pasting another formatter, it may happen that the <code>getKey()</code>
-     * method is not adapted. This results in duplicate keys, which this test tests for.
+     * When a new formatter is added by copy and pasting another formatter, it may happen that the <code>getKey()</code> method is not adapted. This results in duplicate keys, which this test tests for.
      */
     @Test
     public void allFormatterKeysAreUnique() {
         // idea for uniqueness checking by https://stackoverflow.com/a/44032568/873282
-        assertEquals(Collections.emptyList(),
-                getFormatters().collect(Collectors.groupingBy(
-                        formatter -> formatter.getKey(),
-                        Collectors.counting()))
-                               .entrySet().stream()
-                               .filter(e -> e.getValue() > 1)
-                               .map(Map.Entry::getKey)
-                               .collect(Collectors.toList()));
+       assertEquals(Collections.emptyList(),
+               getFormatters().collect(Collectors.groupingBy(
+                 formatter -> formatter.getKey(),
+                 Collectors.counting()))
+               .entrySet().stream()
+               .filter(e -> e.getValue() > 1)
+               .map(Map.Entry::getKey)
+               .collect(Collectors.toList()));
     }
 
     @ParameterizedTest
     @MethodSource("getFormatters")
-    void getNameReturnsNotNull(Formatter formatter) {
+    public void getNameReturnsNotNull(Formatter formatter) {
         assertNotNull(formatter.getName());
     }
 
     @ParameterizedTest
     @MethodSource("getFormatters")
-    void getNameReturnsNotEmpty(Formatter formatter) {
+    public void getNameReturnsNotEmpty(Formatter formatter) {
         assertNotEquals("", formatter.getName());
     }
 
     @ParameterizedTest
     @MethodSource("getFormatters")
-    void getKeyReturnsNotNull(Formatter formatter) {
+    public void getKeyReturnsNotNull(Formatter formatter) {
         assertNotNull(formatter.getKey());
     }
 
     @ParameterizedTest
     @MethodSource("getFormatters")
-    void getKeyReturnsNotEmpty(Formatter formatter) {
+    public void getKeyReturnsNotEmpty(Formatter formatter) {
         assertNotEquals("", formatter.getKey());
     }
 
     @ParameterizedTest
     @MethodSource("getFormatters")
-    void formatOfNullThrowsException(Formatter formatter) {
+    public void formatOfNullThrowsException(Formatter formatter) {
         assertThrows(NullPointerException.class, () -> formatter.format(null));
     }
 
     @ParameterizedTest
     @MethodSource("getFormatters")
-    void formatOfEmptyStringReturnsEmpty(Formatter formatter) {
+    public void formatOfEmptyStringReturnsEmpty(Formatter formatter) {
         assertEquals("", formatter.format(""));
     }
 
     @ParameterizedTest
     @MethodSource("getFormatters")
-    void formatNotReturnsNull(Formatter formatter) {
+    public void formatNotReturnsNull(Formatter formatter) {
         assertNotNull(formatter.format("string"));
     }
 
     @ParameterizedTest
     @MethodSource("getFormatters")
-    void getDescriptionAlwaysNonEmpty(Formatter formatter) {
+    public void getDescriptionAlwaysNonEmpty(Formatter formatter) {
         assertFalse(formatter.getDescription().isEmpty());
     }
 
     @ParameterizedTest
     @MethodSource("getFormatters")
-    void getExampleInputAlwaysNonEmpty(Formatter formatter) {
+    public void getExampleInputAlwaysNonEmpty(Formatter formatter) {
         assertFalse(formatter.getExampleInput().isEmpty());
     }
 

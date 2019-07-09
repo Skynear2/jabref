@@ -57,6 +57,7 @@ class StringUtilTest {
         assertEquals("a::b:%c:;", StringUtil.quote("a:b%c;", "%;", ':'));
     }
 
+
     @Test
     void testUnifyLineBreaks() {
         // Mac < v9
@@ -119,7 +120,7 @@ class StringUtilTest {
 
     @Test
     void testJoin() {
-        String[] s = {"ab", "cd", "ed"};
+        String[] s = "ab/cd/ed".split("/");
         assertEquals("ab\\cd\\ed", StringUtil.join(s, "\\", 0, s.length));
 
         assertEquals("cd\\ed", StringUtil.join(s, "\\", 1, s.length));
@@ -128,7 +129,7 @@ class StringUtilTest {
 
         assertEquals("", StringUtil.join(s, "\\", 3, s.length));
 
-        assertEquals("", StringUtil.join(new String[]{}, "\\", 0, 0));
+        assertEquals("", StringUtil.join(new String[] {}, "\\", 0, 0));
     }
 
     @Test
@@ -191,6 +192,7 @@ class StringUtilTest {
         assertFalse(StringUtil.isInCurlyBrackets("}"));
         assertFalse(StringUtil.isInCurlyBrackets("a{}a"));
         assertFalse(StringUtil.isInCurlyBrackets("{\\AA}sa {\\AA}Stor{\\aa}"));
+
     }
 
     @Test
